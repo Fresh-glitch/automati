@@ -1,0 +1,8 @@
+{
+  "parent": "minecraft:block/cube_bottom_top",
+  "textures": {
+    "top": "automati:block/crusher_top_on",
+    "bottom": "automati:block/factory_block",
+    "side": "automati:block/crusher_side"
+  }
+}

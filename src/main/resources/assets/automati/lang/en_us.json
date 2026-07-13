@@ -3,6 +3,8 @@
   "block.automati.factory_block": "Factory Casing",
   "block.automati.coal_generator": "Coal Generator",
   "block.automati.load_bank": "Load Bank",
+  "block.automati.crusher": "Crusher",
+  "subtitles.automati.crusher_loop": "Crusher grinds",
   "subtitles.automati.coal_generator_loop": "Coal Generator hums",
   "subtitles.automati.coal_generator_clog": "Coal Generator clogs up",
   "item.automati.ash": "Ash",

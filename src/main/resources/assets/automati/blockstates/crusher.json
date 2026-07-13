@@ -1,0 +1,6 @@
+{
+  "variants": {
+    "lit=false": { "model": "automati:block/crusher" },
+    "lit=true":  { "model": "automati:block/crusher_on" }
+  }
+}
