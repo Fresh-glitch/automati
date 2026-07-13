@@ -8,5 +8,10 @@
   "subtitles.automati.coal_generator_loop": "Coal Generator hums",
   "subtitles.automati.coal_generator_clog": "Coal Generator clogs up",
   "item.automati.ash": "Ash",
-  "gui.automati.coal_generator.clogged": "Clogged with ash! Empty the byproduct slot."
+  "item.automati.iron_dust": "Iron Dust",
+  "item.automati.copper_dust": "Copper Dust",
+  "item.automati.gold_dust": "Gold Dust",
+  "gui.automati.coal_generator.clogged": "Clogged with ash! Empty the byproduct slot.",
+  "death.attack.crusher": "%1$s was shredded by a Crusher",
+  "death.attack.crusher.player": "%1$s was shredded by a Crusher whilst escaping %2$s"
 }

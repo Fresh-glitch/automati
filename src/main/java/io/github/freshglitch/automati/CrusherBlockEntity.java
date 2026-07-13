@@ -3,6 +3,9 @@ package io.github.freshglitch.automati;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.item.crafting.RecipeHolder;
+import net.minecraft.world.item.crafting.SingleRecipeInput;
 import net.minecraft.world.Containers;
 import net.minecraft.world.MenuProvider;
 import net.minecraft.world.entity.player.Inventory;
@@ -10,7 +13,6 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.ContainerData;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
@@ -36,28 +38,34 @@ public class CrusherBlockEntity extends BlockEntity implements MenuProvider {
     public static final int INPUT_SLOT = 0;
     public static final int OUTPUT_SLOT = 1;
 
-    // What comes out when a given item goes through the rollers.
-    // Hardcoded for now; graduating this to a JSON recipe type is a future project.
-    public static ItemStack resultFor(ItemStack input) {
-        if (input.is(Items.IRON_ORE) || input.is(Items.DEEPSLATE_IRON_ORE))
-            return new ItemStack(Items.RAW_IRON, 2);
-        if (input.is(Items.COPPER_ORE) || input.is(Items.DEEPSLATE_COPPER_ORE))
-            return new ItemStack(Items.RAW_COPPER, 2);
-        if (input.is(Items.GOLD_ORE) || input.is(Items.DEEPSLATE_GOLD_ORE))
-            return new ItemStack(Items.RAW_GOLD, 2);
-        if (input.is(Items.COBBLESTONE))
-            return new ItemStack(Items.GRAVEL);
-        if (input.is(Items.GRAVEL))
-            return new ItemStack(Items.SAND);
-        if (input.is(Items.BONE))
-            return new ItemStack(Items.BONE_MEAL, 4);
+    // Cache of the last matched recipe: the recipe manager checks it first,
+    // so crushing a whole stack costs one real lookup instead of hundreds
+    private RecipeHolder<CrusherRecipe> lastRecipe;
+
+    // What comes out when a given item goes through the rollers — answered by
+    // the data-driven crushing recipes under data/automati/recipe/crushing/
+    private ItemStack resultFor(Level level, ItemStack stack) {
+        if (stack.isEmpty() || !(level instanceof ServerLevel serverLevel))
+            return ItemStack.EMPTY;
+        SingleRecipeInput input = new SingleRecipeInput(stack);
+        var found = serverLevel.recipeAccess().getRecipeFor(Automati.CRUSHING_RECIPE_TYPE.get(), input, level, lastRecipe);
+        if (found.isPresent()) {
+            lastRecipe = found.get();
+            return found.get().value().assemble(input);
+        }
         return ItemStack.EMPTY;
     }
 
     private final ItemStackHandler inventory = new ItemStackHandler(2) {
         @Override
         public boolean isItemValid(int slot, ItemStack stack) {
-            return slot == INPUT_SLOT && !resultFor(stack).isEmpty();
+            if (slot != INPUT_SLOT)
+                return false;
+            // recipes only exist server-side; the client accepts optimistically
+            // and the server has the final word
+            if (level == null || level.isClientSide())
+                return !stack.isEmpty();
+            return !resultFor(level, stack).isEmpty();
         }
 
         @Override
@@ -169,7 +177,7 @@ public class CrusherBlockEntity extends BlockEntity implements MenuProvider {
 
     public void serverTick(Level level, BlockPos pos, BlockState state) {
         ItemStack input = inventory.getStackInSlot(INPUT_SLOT);
-        ItemStack result = resultFor(input);
+        ItemStack result = resultFor(level, input);
 
         boolean working = false;
         if (result.isEmpty()) {

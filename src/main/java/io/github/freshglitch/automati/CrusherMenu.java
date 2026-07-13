@@ -98,13 +98,10 @@ public class CrusherMenu extends AbstractContainerMenu {
             if (!moveItemStackTo(stack, 2, 38, true))
                 return ItemStack.EMPTY;
         } else {
-            // Player inventory -> input slot, if the crusher knows the item
-            if (!CrusherBlockEntity.resultFor(stack).isEmpty()) {
-                if (!moveItemStackTo(stack, 0, 1, false))
-                    return ItemStack.EMPTY;
-            } else {
+            // Player inventory -> input slot; the slot itself asks the recipe
+            // manager (server-side) whether the item is crushable
+            if (!moveItemStackTo(stack, 0, 1, false))
                 return ItemStack.EMPTY;
-            }
         }
 
         if (stack.isEmpty())
