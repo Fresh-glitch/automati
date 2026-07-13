@@ -16,5 +16,14 @@
         "name": "automati:coal_generator_clog"
       }
     ]
+  },
+  "crusher_loop": {
+    "category": "block",
+    "subtitle": "subtitles.automati.crusher_loop",
+    "sounds": [
+      {
+        "name": "automati:crusher_loop"
+      }
+    ]
   }
 }
