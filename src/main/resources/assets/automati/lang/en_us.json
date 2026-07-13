@@ -1,0 +1,10 @@
+{
+  "itemGroup.automati": "Automati",
+  "block.automati.factory_block": "Factory Casing",
+  "block.automati.coal_generator": "Coal Generator",
+  "block.automati.load_bank": "Load Bank",
+  "subtitles.automati.coal_generator_loop": "Coal Generator hums",
+  "subtitles.automati.coal_generator_clog": "Coal Generator clogs up",
+  "item.automati.ash": "Ash",
+  "gui.automati.coal_generator.clogged": "Clogged with ash! Empty the byproduct slot."
+}

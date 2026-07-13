@@ -1,0 +1,20 @@
+{
+  "coal_generator_loop": {
+    "category": "block",
+    "subtitle": "subtitles.automati.coal_generator_loop",
+    "sounds": [
+      {
+        "name": "automati:coal_generator_loop"
+      }
+    ]
+  },
+  "coal_generator_clog": {
+    "category": "block",
+    "subtitle": "subtitles.automati.coal_generator_clog",
+    "sounds": [
+      {
+        "name": "automati:coal_generator_clog"
+      }
+    ]
+  }
+}
