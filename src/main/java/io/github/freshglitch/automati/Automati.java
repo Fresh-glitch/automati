@@ -120,6 +120,29 @@ public final class Automati {
         MENUS.register("load_bank",
             () -> IForgeMenuType.create(LoadBankMenu::new));
 
+    // The crusher: a shredder that grinds ores into doubled raw metal, powered by Ergs
+    public static final RegistryObject<Block> CRUSHER = BLOCKS.register("crusher",
+        () -> new CrusherBlock(BlockBehaviour.Properties.of()
+            .setId(BLOCKS.key("crusher"))
+            .mapColor(MapColor.METAL)
+            .sound(SoundType.METAL)
+            .strength(5.0F, 6.0F)
+            .requiresCorrectToolForDrops()
+        )
+    );
+    public static final RegistryObject<Item> CRUSHER_ITEM = ITEMS.register("crusher",
+        () -> new BlockItem(CRUSHER.get(), new Item.Properties().setId(ITEMS.key("crusher")).useBlockDescriptionPrefix())
+    );
+    public static final RegistryObject<BlockEntityType<CrusherBlockEntity>> CRUSHER_BLOCK_ENTITY =
+        BLOCK_ENTITIES.register("crusher",
+            () -> new BlockEntityType<>(CrusherBlockEntity::new, java.util.Set.of(CRUSHER.get())));
+    public static final RegistryObject<MenuType<CrusherMenu>> CRUSHER_MENU =
+        MENUS.register("crusher",
+            () -> IForgeMenuType.create(CrusherMenu::new));
+    // The grinding racket the crusher makes while its rollers spin
+    public static final RegistryObject<SoundEvent> CRUSHER_LOOP = SOUNDS.register("crusher_loop",
+        () -> SoundEvent.createVariableRangeEvent(Identifier.fromNamespaceAndPath(MODID, "crusher_loop")));
+
     // The Automati creative tab: named, iconed with the coal generator, placed after the combat tab
     public static final RegistryObject<CreativeModeTab> AUTOMATI_TAB = CREATIVE_MODE_TABS.register("automati_tab", () -> CreativeModeTab.builder()
             .withTabsBefore(CreativeModeTabs.COMBAT)
@@ -128,6 +151,7 @@ public final class Automati {
             .displayItems((_, output) -> {
                 output.accept(FACTORY_BLOCK_ITEM.get());
                 output.accept(COAL_GENERATOR_ITEM.get());
+                output.accept(CRUSHER_ITEM.get());
                 output.accept(LOAD_BANK_ITEM.get());
                 output.accept(ASH.get());
             }).build());
@@ -174,6 +198,7 @@ public final class Automati {
             event.enqueueWork(() -> {
                 MenuScreens.register(COAL_GENERATOR_MENU.get(), CoalGeneratorScreen::new);
                 MenuScreens.register(LOAD_BANK_MENU.get(), LoadBankScreen::new);
+                MenuScreens.register(CRUSHER_MENU.get(), CrusherScreen::new);
             });
         }
     }

@@ -3,6 +3,7 @@
   "values": [
     "automati:factory_block",
     "automati:coal_generator",
-    "automati:load_bank"
+    "automati:load_bank",
+    "automati:crusher"
   ]
 }

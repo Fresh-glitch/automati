@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "III",
+    "CBC",
+    "CRC"
+  ],
+  "key": {
+    "I": "minecraft:iron_ingot",
+    "C": "automati:factory_block",
+    "B": "minecraft:iron_block",
+    "R": "minecraft:redstone"
+  },
+  "result": {
+    "id": "automati:crusher",
+    "count": 1
+  }
+}
