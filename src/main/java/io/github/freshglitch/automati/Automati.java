@@ -12,6 +12,9 @@ import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.crafting.RecipeBookCategory;
+import net.minecraft.world.item.crafting.RecipeSerializer;
+import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
@@ -48,6 +51,22 @@ public final class Automati {
     public static final DeferredRegister<MenuType<?>> MENUS = DeferredRegister.create(ForgeRegistries.MENU_TYPES, MODID);
     // Create a Deferred Register to hold SoundEvents
     public static final DeferredRegister<SoundEvent> SOUNDS = DeferredRegister.create(ForgeRegistries.SOUND_EVENTS, MODID);
+    // Deferred Registers for the data-driven crushing recipe system
+    public static final DeferredRegister<RecipeType<?>> RECIPE_TYPES = DeferredRegister.create(ForgeRegistries.RECIPE_TYPES, MODID);
+    public static final DeferredRegister<RecipeSerializer<?>> RECIPE_SERIALIZERS = DeferredRegister.create(ForgeRegistries.RECIPE_SERIALIZERS, MODID);
+    public static final DeferredRegister<RecipeBookCategory> RECIPE_BOOK_CATEGORIES = DeferredRegister.create(Registries.RECIPE_BOOK_CATEGORY, MODID);
+
+    // The crushing recipe type: recipes live in data/automati/recipe/crushing/
+    public static final RegistryObject<RecipeType<CrusherRecipe>> CRUSHING_RECIPE_TYPE =
+        RECIPE_TYPES.register("crushing", () -> RecipeType.simple(Identifier.fromNamespaceAndPath(MODID, "crushing")));
+    public static final RegistryObject<RecipeSerializer<CrusherRecipe>> CRUSHING_SERIALIZER =
+        RECIPE_SERIALIZERS.register("crushing", () -> new RecipeSerializer<>(CrusherRecipe.MAP_CODEC, CrusherRecipe.STREAM_CODEC));
+    public static final RegistryObject<RecipeBookCategory> CRUSHING_CATEGORY =
+        RECIPE_BOOK_CATEGORIES.register("crushing", RecipeBookCategory::new);
+
+    // Damage dealt by standing on active crusher blades (defined in data/automati/damage_type/)
+    public static final net.minecraft.resources.ResourceKey<net.minecraft.world.damagesource.DamageType> CRUSHER_DAMAGE =
+        net.minecraft.resources.ResourceKey.create(Registries.DAMAGE_TYPE, Identifier.fromNamespaceAndPath(MODID, "crusher"));
 
     // The mechanical hum the coal generator makes while running
     public static final RegistryObject<SoundEvent> COAL_GENERATOR_LOOP = SOUNDS.register("coal_generator_loop",
@@ -59,6 +78,16 @@ public final class Automati {
     // Ash: the combustion byproduct left behind by the coal generator
     public static final RegistryObject<Item> ASH = ITEMS.register("ash",
         () -> new Item(new Item.Properties().setId(ITEMS.key("ash")))
+    );
+    // Metal dusts: pulverized ore from the crusher, smeltable into ingots
+    public static final RegistryObject<Item> IRON_DUST = ITEMS.register("iron_dust",
+        () -> new Item(new Item.Properties().setId(ITEMS.key("iron_dust")))
+    );
+    public static final RegistryObject<Item> COPPER_DUST = ITEMS.register("copper_dust",
+        () -> new Item(new Item.Properties().setId(ITEMS.key("copper_dust")))
+    );
+    public static final RegistryObject<Item> GOLD_DUST = ITEMS.register("gold_dust",
+        () -> new Item(new Item.Properties().setId(ITEMS.key("gold_dust")))
     );
 
     // Creates a new Block with the id "automati:factory_block", combining the namespace and path
@@ -154,6 +183,9 @@ public final class Automati {
                 output.accept(CRUSHER_ITEM.get());
                 output.accept(LOAD_BANK_ITEM.get());
                 output.accept(ASH.get());
+                output.accept(IRON_DUST.get());
+                output.accept(COPPER_DUST.get());
+                output.accept(GOLD_DUST.get());
             }).build());
 
     public Automati(FMLJavaModLoadingContext context) {
@@ -168,10 +200,13 @@ public final class Automati {
         ITEMS.register(modBusGroup);
         // Register the Deferred Register to the mod event bus so tabs get registered
         CREATIVE_MODE_TABS.register(modBusGroup);
-        // Register the Deferred Registers for block entities, menus and sounds
+        // Register the Deferred Registers for block entities, menus, sounds and recipes
         BLOCK_ENTITIES.register(modBusGroup);
         MENUS.register(modBusGroup);
         SOUNDS.register(modBusGroup);
+        RECIPE_TYPES.register(modBusGroup);
+        RECIPE_SERIALIZERS.register(modBusGroup);
+        RECIPE_BOOK_CATEGORIES.register(modBusGroup);
 
         // Register the item to a creative tab
         BuildCreativeModeTabContentsEvent.BUS.addListener(Automati::addCreative);
