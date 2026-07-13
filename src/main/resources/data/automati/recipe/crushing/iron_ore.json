@@ -1,0 +1,1 @@
+{ "type": "automati:crushing", "ingredient": [ "minecraft:iron_ore", "minecraft:deepslate_iron_ore" ], "result": { "id": "automati:iron_dust", "count": 3 } }
