@@ -1,0 +1,6 @@
+{
+  "variants": {
+    "lit=false": { "model": "automati:block/load_bank" },
+    "lit=true":  { "model": "automati:block/load_bank_on" }
+  }
+}

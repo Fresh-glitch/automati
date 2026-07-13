@@ -1,0 +1,10 @@
+{
+  "variants": {
+    "smooth=false": {
+      "model": "automati:block/factory_block"
+    },
+    "smooth=true": {
+      "model": "automati:block/factory_block_smooth"
+    }
+  }
+}

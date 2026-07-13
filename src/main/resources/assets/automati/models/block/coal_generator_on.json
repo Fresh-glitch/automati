@@ -1,0 +1,9 @@
+{
+  "parent": "minecraft:block/orientable_with_bottom",
+  "textures": {
+    "top": "automati:block/coal_generator_top",
+    "bottom": "automati:block/factory_block",
+    "front": "automati:block/coal_generator_front_on",
+    "side": "automati:block/factory_block"
+  }
+}
