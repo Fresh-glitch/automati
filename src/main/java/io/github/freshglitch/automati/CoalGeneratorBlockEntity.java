@@ -2,7 +2,12 @@ package io.github.freshglitch.automati;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.protocol.Packet;
+import net.minecraft.network.protocol.game.ClientGamePacketListener;
+import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.Containers;
 import net.minecraft.world.MenuProvider;
@@ -31,7 +36,7 @@ import java.util.List;
 // The generator's brain: burns coal/charcoal into Ergs, stores them, and pushes
 // them to adjacent machines every tick. Every piece of burnt fuel leaves ash
 // behind — and a full ash bin clogs the machine until it is emptied.
-public class CoalGeneratorBlockEntity extends BlockEntity implements MenuProvider {
+public class CoalGeneratorBlockEntity extends AbstractErgBlockEntity implements MenuProvider {
     public static final int CAPACITY = 100_000;          // Erg buffer size
     public static final int GENERATION_PER_TICK = 40;    // Ergs per tick while burning
     public static final int MAX_PUSH_PER_TICK = 200;     // max Ergs pushed to each neighbour per tick
@@ -88,8 +93,6 @@ public class CoalGeneratorBlockEntity extends BlockEntity implements MenuProvide
             return inventory.isItemValid(slot, stack);
         }
     };
-
-    private final ErgStorage energy = new ErgStorage(CAPACITY, MAX_PUSH_PER_TICK);
 
     // What neighbours see: a producer's port. Energy comes OUT, never in —
     // otherwise cables happily push energy back into their own source
@@ -158,7 +161,7 @@ public class CoalGeneratorBlockEntity extends BlockEntity implements MenuProvide
     };
 
     public CoalGeneratorBlockEntity(BlockPos pos, BlockState state) {
-        super(Automati.COAL_GENERATOR_BLOCK_ENTITY.get(), pos, state);
+        super(Automati.COAL_GENERATOR_BLOCK_ENTITY.get(), pos, state, CAPACITY, MAX_PUSH_PER_TICK);
     }
 
     public void serverTick(Level level, BlockPos pos, BlockState state) {
@@ -189,6 +192,7 @@ public class CoalGeneratorBlockEntity extends BlockEntity implements MenuProvide
             level.setBlock(pos, state.setValue(CoalGeneratorBlock.LIT, burning), 3);
 
         pushEnergyToNeighbours(level, pos);
+        maybeSyncEnergyToClients(level, pos);
 
         if (changed)
             setChanged();
@@ -295,15 +299,15 @@ public class CoalGeneratorBlockEntity extends BlockEntity implements MenuProvide
         output.store("Fuel", ItemStack.OPTIONAL_CODEC, inventory.getStackInSlot(FUEL_SLOT));
         output.store("Ash", ItemStack.OPTIONAL_CODEC, inventory.getStackInSlot(ASH_SLOT));
         output.putInt("BurnTime", burnTime);
-        output.putInt("Energy", energy.getEnergyStored());
     }
 
     @Override
     protected void loadAdditional(ValueInput input) {
         super.loadAdditional(input);
-        inventory.setStackInSlot(FUEL_SLOT, input.read("Fuel", ItemStack.OPTIONAL_CODEC).orElse(ItemStack.EMPTY));
-        inventory.setStackInSlot(ASH_SLOT, input.read("Ash", ItemStack.OPTIONAL_CODEC).orElse(ItemStack.EMPTY));
+        // only touch the slots when the data actually carries them — the
+        // energy sync packets don't, and must not wipe the client's copy
+        input.read("Fuel", ItemStack.OPTIONAL_CODEC).ifPresent(stack -> inventory.setStackInSlot(FUEL_SLOT, stack));
+        input.read("Ash", ItemStack.OPTIONAL_CODEC).ifPresent(stack -> inventory.setStackInSlot(ASH_SLOT, stack));
         burnTime = input.getIntOr("BurnTime", 0);
-        energy.setEnergy(input.getIntOr("Energy", 0));
     }
 }

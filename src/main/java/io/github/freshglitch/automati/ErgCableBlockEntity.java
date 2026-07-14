@@ -2,6 +2,11 @@ package io.github.freshglitch.automati;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.protocol.Packet;
+import net.minecraft.network.protocol.game.ClientGamePacketListener;
+import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
@@ -20,18 +25,19 @@ import java.util.List;
 // Into machines it pushes at full rate; into other cables it only moves half
 // the level difference per tick — the gradient is what makes energy travel
 // along a line instead of sloshing back and forth.
-public class ErgCableBlockEntity extends BlockEntity {
+public class ErgCableBlockEntity extends AbstractErgBlockEntity {
     public static final int CAPACITY = 1_000;
     public static final int MAX_TRANSFER = 400;
 
-    private final ErgStorage energy = new ErgStorage(CAPACITY, MAX_TRANSFER);
     private final LazyOptional<IEnergyStorage> energyOptional = LazyOptional.of(() -> energy);
 
     public ErgCableBlockEntity(BlockPos pos, BlockState state) {
-        super(Automati.ERG_CABLE_BLOCK_ENTITY.get(), pos, state);
+        super(Automati.ERG_CABLE_BLOCK_ENTITY.get(), pos, state, CAPACITY, MAX_TRANSFER);
     }
 
     public void serverTick(Level level, BlockPos pos) {
+        maybeSyncEnergyToClients(level, pos);
+
         int stored = energy.getEnergyStored();
         int budget = Math.min(stored, MAX_TRANSFER);
         if (budget == 0)
@@ -93,15 +99,4 @@ public class ErgCableBlockEntity extends BlockEntity {
         energyOptional.invalidate();
     }
 
-    @Override
-    protected void saveAdditional(ValueOutput output) {
-        super.saveAdditional(output);
-        output.putInt("Energy", energy.getEnergyStored());
-    }
-
-    @Override
-    protected void loadAdditional(ValueInput input) {
-        super.loadAdditional(input);
-        energy.setEnergy(input.getIntOr("Energy", 0));
-    }
 }
