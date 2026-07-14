@@ -172,6 +172,23 @@ public final class Automati {
     public static final RegistryObject<SoundEvent> CRUSHER_LOOP = SOUNDS.register("crusher_loop",
         () -> SoundEvent.createVariableRangeEvent(Identifier.fromNamespaceAndPath(MODID, "crusher_loop")));
 
+    // The Erg cable: moves energy between machines, connecting on all six sides
+    public static final RegistryObject<Block> ERG_CABLE = BLOCKS.register("erg_cable",
+        () -> new ErgCableBlock(BlockBehaviour.Properties.of()
+            .setId(BLOCKS.key("erg_cable"))
+            .mapColor(MapColor.METAL)
+            .sound(SoundType.METAL)
+            .strength(1.0F)
+            .noOcclusion()
+        )
+    );
+    public static final RegistryObject<Item> ERG_CABLE_ITEM = ITEMS.register("erg_cable",
+        () -> new BlockItem(ERG_CABLE.get(), new Item.Properties().setId(ITEMS.key("erg_cable")).useBlockDescriptionPrefix())
+    );
+    public static final RegistryObject<BlockEntityType<ErgCableBlockEntity>> ERG_CABLE_BLOCK_ENTITY =
+        BLOCK_ENTITIES.register("erg_cable",
+            () -> new BlockEntityType<>(ErgCableBlockEntity::new, java.util.Set.of(ERG_CABLE.get())));
+
     // The Automati creative tab: named, iconed with the coal generator, placed after the combat tab
     public static final RegistryObject<CreativeModeTab> AUTOMATI_TAB = CREATIVE_MODE_TABS.register("automati_tab", () -> CreativeModeTab.builder()
             .withTabsBefore(CreativeModeTabs.COMBAT)
@@ -182,6 +199,7 @@ public final class Automati {
                 output.accept(COAL_GENERATOR_ITEM.get());
                 output.accept(CRUSHER_ITEM.get());
                 output.accept(LOAD_BANK_ITEM.get());
+                output.accept(ERG_CABLE_ITEM.get());
                 output.accept(ASH.get());
                 output.accept(IRON_DUST.get());
                 output.accept(COPPER_DUST.get());
