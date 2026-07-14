@@ -79,6 +79,22 @@ public final class Automati {
     public static final RegistryObject<Item> ASH = ITEMS.register("ash",
         () -> new Item(new Item.Properties().setId(ITEMS.key("ash")))
     );
+    // Engineer's Goggles: worn on the head, they reveal the Erg charge of any
+    // machine or cable you look at
+    public static final RegistryObject<Item> ENGINEERS_GOGGLES = ITEMS.register("engineers_goggles",
+        () -> new Item(new Item.Properties()
+            .setId(ITEMS.key("engineers_goggles"))
+            .stacksTo(1)
+            .component(net.minecraft.core.component.DataComponents.EQUIPPABLE,
+                net.minecraft.world.item.equipment.Equippable.builder(net.minecraft.world.entity.EquipmentSlot.HEAD)
+                    .setCameraOverlay(Identifier.fromNamespaceAndPath(MODID, "misc/goggles_blur"))
+                    .setAsset(net.minecraft.resources.ResourceKey.create(
+                        net.minecraft.world.item.equipment.EquipmentAssets.ROOT_ID,
+                        Identifier.fromNamespaceAndPath(MODID, "goggles")))
+                    .build())
+        )
+    );
+
     // Metal dusts: pulverized ore from the crusher, smeltable into ingots
     public static final RegistryObject<Item> IRON_DUST = ITEMS.register("iron_dust",
         () -> new Item(new Item.Properties().setId(ITEMS.key("iron_dust")))
@@ -200,6 +216,7 @@ public final class Automati {
                 output.accept(CRUSHER_ITEM.get());
                 output.accept(LOAD_BANK_ITEM.get());
                 output.accept(ERG_CABLE_ITEM.get());
+                output.accept(ENGINEERS_GOGGLES.get());
                 output.accept(ASH.get());
                 output.accept(IRON_DUST.get());
                 output.accept(COPPER_DUST.get());
@@ -243,6 +260,12 @@ public final class Automati {
     // You can use EventBusSubscriber to automatically register all static methods in the class annotated with @SubscribeEvent
     @Mod.EventBusSubscriber(modid = MODID, value = Dist.CLIENT)
     public static class ClientModEvents {
+        @SubscribeEvent
+        public static void onAddGuiOverlayLayers(net.minecraftforge.client.event.AddGuiOverlayLayersEvent event) {
+            // Register the goggles readout as a HUD layer
+            event.getLayeredDraw().add(Identifier.fromNamespaceAndPath(MODID, "goggles_hud"), new GogglesHudLayer());
+        }
+
         @SubscribeEvent
         public static void onClientSetup(FMLClientSetupEvent event) {
             LOGGER.info("Automati client setup complete");
