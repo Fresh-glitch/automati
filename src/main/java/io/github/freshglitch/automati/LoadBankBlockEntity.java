@@ -33,41 +33,6 @@ public class LoadBankBlockEntity extends AbstractErgBlockEntity implements MenuP
     public static final int MAX_RATE = 400;      // max dump rate, Ergs per tick
     public static final int RATE_STEP = 20;      // one button press
 
-    // What neighbours see: energy flows in, never back out
-    private final IEnergyStorage receiveOnly = new IEnergyStorage() {
-        @Override
-        public int receiveEnergy(int maxReceive, boolean simulate) {
-            return energy.receiveEnergy(maxReceive, simulate);
-        }
-
-        @Override
-        public int extractEnergy(int maxExtract, boolean simulate) {
-            return 0;
-        }
-
-        @Override
-        public int getEnergyStored() {
-            return energy.getEnergyStored();
-        }
-
-        @Override
-        public int getMaxEnergyStored() {
-            return energy.getMaxEnergyStored();
-        }
-
-        @Override
-        public boolean canExtract() {
-            return false;
-        }
-
-        @Override
-        public boolean canReceive() {
-            return true;
-        }
-    };
-
-    private final LazyOptional<IEnergyStorage> energyOptional = LazyOptional.of(() -> receiveOnly);
-
     private int dumpRate = 40; // Ergs dissipated per tick; starts matched to one generator
 
     private final ContainerData data = new ContainerData() {
@@ -94,7 +59,7 @@ public class LoadBankBlockEntity extends AbstractErgBlockEntity implements MenuP
     };
 
     public LoadBankBlockEntity(BlockPos pos, BlockState state) {
-        super(Automati.LOAD_BANK_BLOCK_ENTITY.get(), pos, state, CAPACITY, MAX_RECEIVE);
+        super(Automati.LOAD_BANK_BLOCK_ENTITY.get(), pos, state, CAPACITY, MAX_RECEIVE, ErgPort.RECEIVE_ONLY);
     }
 
     public void serverTick(Level level, BlockPos pos, BlockState state) {
@@ -127,19 +92,6 @@ public class LoadBankBlockEntity extends AbstractErgBlockEntity implements MenuP
     @Override
     public AbstractContainerMenu createMenu(int containerId, Inventory playerInventory, Player player) {
         return new LoadBankMenu(containerId, playerInventory, this, data);
-    }
-
-    @Override
-    public <T> LazyOptional<T> getCapability(Capability<T> cap, @Nullable Direction side) {
-        if (cap == ForgeCapabilities.ENERGY)
-            return energyOptional.cast();
-        return super.getCapability(cap, side);
-    }
-
-    @Override
-    public void invalidateCaps() {
-        super.invalidateCaps();
-        energyOptional.invalidate();
     }
 
     @Override
