@@ -30,11 +30,26 @@ All Java code lives in one flat package: `src/main/java/io/github/freshglitch/au
 - **`Automati.java` is the registration hub.** Every block, item, block entity,
   menu, sound, recipe type, and creative tab is registered here via
   `DeferredRegister`/`RegistryObject`. New content starts here.
-- **Machines follow a four-class pattern**: `FooBlock` (block + blockstates like `LIT`),
-  `FooBlockEntity` (ticking logic, inventory, energy, save/load), `FooMenu`
-  (server↔client container), `FooScreen` (client GUI, registered in
-  `Automati.ClientModEvents.onClientSetup`). Coal generator, load bank, and
-  crusher all follow it — copy an existing machine when adding a new one.
+- **Machines follow a four-class pattern built on four base classes** —
+  `AbstractMachineBlock` (LIT state, ticking dispatch, right-click opens menu),
+  `AbstractErgBlockEntity` (energy buffer + save/load, port type, goggles HUD
+  sync, `distributeEnergy()` for producers/conduits), `AbstractErgMenu`
+  (open-race fix, split 32-bit energy getter, stillValid, player inventory),
+  `AbstractErgScreen` (panel + standard Erg gauge + tooltip). A new machine:
+  1. `FooBlock extends AbstractMachineBlock` — override `newBlockEntity`, add
+     personality (facing, `animateTick`, hazards)
+  2. `FooBlockEntity extends AbstractErgBlockEntity` — pass capacity/rate and
+     an `ErgPort` (RECEIVE_ONLY consumer / EXTRACT_ONLY producer / OPEN
+     conduit) to super; override `serverTick`, call
+     `maybeSyncEnergyToClients()` in it
+  3. `FooMenu extends AbstractErgMenu` — pass the energy data-slot index to
+     super; add machine slots + `addPlayerInventory()`; implement
+     `quickMoveStack` and `getCapacity()`
+  4. `FooScreen extends AbstractErgScreen<FooMenu>` — pass the GUI texture to
+     super; draw extras in `extractMachine()`; register the screen in
+     `Automati.ClientModEvents.onClientSetup`
+  Crusher is the fullest reference example; the erg cable shows a
+  non-machine `AbstractErgBlockEntity` (no menu, custom block shape).
 - **Energy**: `ErgStorage` extends Forge's `EnergyStorage`, exposed through the
   standard Forge energy capability so machines interoperate. Generators push to
   neighbours each tick; block entities expose capabilities via `LazyOptional`.

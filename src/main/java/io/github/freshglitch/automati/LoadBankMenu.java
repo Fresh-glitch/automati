@@ -3,22 +3,19 @@ package io.github.freshglitch.automati;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.ContainerData;
 import net.minecraft.world.inventory.SimpleContainerData;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.phys.Vec3;
 
-// Container logic for the load bank GUI. No machine slots — just the player
-// inventory, the synced gauges, and the -/+ buttons that arrive as menu button
-// clicks (the same channel the stonecutter and lectern use).
-public class LoadBankMenu extends AbstractContainerMenu {
+// Container logic for the load bank GUI: no machine slots, just the dump-rate
+// buttons (vanilla menu-button channel) and the synced gauges. Energy sync,
+// player inventory, and the open-race fix come from the base class.
+public class LoadBankMenu extends AbstractErgMenu {
     public static final int BUTTON_DECREASE = 0;
     public static final int BUTTON_INCREASE = 1;
 
-    private final LoadBankBlockEntity blockEntity;
-    private final ContainerData data;
+    private final LoadBankBlockEntity loadBank;
 
     // Client-side constructor: the block position arrives over the network
     public LoadBankMenu(int containerId, Inventory playerInventory, FriendlyByteBuf buf) {
@@ -29,42 +26,20 @@ public class LoadBankMenu extends AbstractContainerMenu {
 
     // Server-side constructor
     public LoadBankMenu(int containerId, Inventory playerInventory, LoadBankBlockEntity blockEntity, ContainerData data) {
-        super(Automati.LOAD_BANK_MENU.get(), containerId);
-        this.blockEntity = blockEntity;
-        this.data = data;
-
-        // Player inventory (3 rows of 9) + hotbar
-        for (int row = 0; row < 3; row++)
-            for (int col = 0; col < 9; col++)
-                addSlot(new Slot(playerInventory, col + row * 9 + 9, 8 + col * 18, 84 + row * 18));
-        for (int col = 0; col < 9; col++)
-            addSlot(new Slot(playerInventory, col, 8 + col * 18, 142));
-
-        addDataSlots(data);
-    }
-
-    // Same initial-sync race protection as the coal generator
-    private int initialResyncTicks = 5;
-
-    @Override
-    public void broadcastChanges() {
-        if (initialResyncTicks > 0) {
-            initialResyncTicks--;
-            broadcastFullState();
-        } else {
-            super.broadcastChanges();
-        }
+        super(Automati.LOAD_BANK_MENU.get(), containerId, blockEntity, data, 1);
+        this.loadBank = blockEntity;
+        addPlayerInventory(playerInventory);
     }
 
     // The -/+ buttons land here, on the server
     @Override
     public boolean clickMenuButton(Player player, int id) {
         if (id == BUTTON_DECREASE) {
-            blockEntity.adjustDumpRate(-LoadBankBlockEntity.RATE_STEP);
+            loadBank.adjustDumpRate(-LoadBankBlockEntity.RATE_STEP);
             return true;
         }
         if (id == BUTTON_INCREASE) {
-            blockEntity.adjustDumpRate(LoadBankBlockEntity.RATE_STEP);
+            loadBank.adjustDumpRate(LoadBankBlockEntity.RATE_STEP);
             return true;
         }
         return false;
@@ -74,10 +49,7 @@ public class LoadBankMenu extends AbstractContainerMenu {
         return data.get(0);
     }
 
-    public int getEnergy() {
-        return ((data.get(2) & 0xFFFF) << 16) | (data.get(1) & 0xFFFF);
-    }
-
+    @Override
     public int getCapacity() {
         return LoadBankBlockEntity.CAPACITY;
     }
@@ -110,11 +82,5 @@ public class LoadBankMenu extends AbstractContainerMenu {
             slot.setChanged();
 
         return original;
-    }
-
-    @Override
-    public boolean stillValid(Player player) {
-        return blockEntity != null && !blockEntity.isRemoved()
-            && player.distanceToSqr(Vec3.atCenterOf(blockEntity.getBlockPos())) <= 64.0;
     }
 }

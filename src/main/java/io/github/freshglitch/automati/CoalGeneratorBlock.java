@@ -3,31 +3,21 @@ package io.github.freshglitch.automati;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.particles.ParticleTypes;
-import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.RandomSource;
-import net.minecraft.world.InteractionResult;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.EntityBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraft.world.level.block.entity.BlockEntityTicker;
-import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
-import net.minecraft.world.level.block.state.properties.BooleanProperty;
 import net.minecraft.world.level.block.state.properties.EnumProperty;
-import net.minecraft.world.phys.BlockHitResult;
-import org.jetbrains.annotations.Nullable;
 
-// Tier-1 generator: burns coal/charcoal into Ergs. The block itself is thin —
-// facing/lit state and menu opening — all the machine logic lives in the block entity.
-public class CoalGeneratorBlock extends Block implements EntityBlock {
+// The coal generator block: faces the player like a furnace and carries the
+// running ambience. Ticking, LIT state, and menu opening come from the base.
+public class CoalGeneratorBlock extends AbstractMachineBlock {
     public static final EnumProperty<Direction> FACING = BlockStateProperties.HORIZONTAL_FACING;
-    public static final BooleanProperty LIT = BlockStateProperties.LIT;
 
     public CoalGeneratorBlock(Properties properties) {
         super(properties);
@@ -38,7 +28,8 @@ public class CoalGeneratorBlock extends Block implements EntityBlock {
 
     @Override
     protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
-        builder.add(FACING, LIT);
+        super.createBlockStateDefinition(builder);
+        builder.add(FACING);
     }
 
     @Override
@@ -52,29 +43,8 @@ public class CoalGeneratorBlock extends Block implements EntityBlock {
         return new CoalGeneratorBlockEntity(pos, state);
     }
 
-    @Override
-    @Nullable
-    public <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level level, BlockState state, BlockEntityType<T> type) {
-        if (level.isClientSide())
-            return null;
-        return (lvl, pos, st, blockEntity) -> {
-            if (blockEntity instanceof CoalGeneratorBlockEntity generator)
-                generator.serverTick(lvl, pos, st);
-        };
-    }
-
-    @Override
-    protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hitResult) {
-        if (!level.isClientSide() && player instanceof ServerPlayer serverPlayer
-                && level.getBlockEntity(pos) instanceof CoalGeneratorBlockEntity generator) {
-            serverPlayer.openMenu(generator, pos);
-        }
-        return InteractionResult.SUCCESS;
-    }
-
     // Client-side ambience while the generator is running: a mechanical hum,
-    // smoke drifting from the top, and electric sparks jumping out of the vent —
-    // sparks instead of flames, so it reads as machinery rather than a furnace.
+    // smoke rising from the exhaust stack, and electric sparks out of the vent
     @Override
     public void animateTick(BlockState state, Level level, BlockPos pos, RandomSource random) {
         if (!state.getValue(LIT))

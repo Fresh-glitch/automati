@@ -5,10 +5,8 @@ import net.minecraft.core.Holder;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.RandomSource;
-import net.minecraft.world.InteractionResult;
 import net.minecraft.world.damagesource.CombatRules;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.damagesource.DamageType;
@@ -16,59 +14,23 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.Attributes;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.EntityBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraft.world.level.block.entity.BlockEntityTicker;
-import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.block.state.StateDefinition;
-import net.minecraft.world.level.block.state.properties.BlockStateProperties;
-import net.minecraft.world.level.block.state.properties.BooleanProperty;
-import net.minecraft.world.phys.BlockHitResult;
-import org.jetbrains.annotations.Nullable;
 
-// The crusher block: counter-rotating blade rollers on the top face, visible
-// from every side, so no facing — just LIT while the rollers are spinning.
-public class CrusherBlock extends Block implements EntityBlock {
-    public static final BooleanProperty LIT = BlockStateProperties.LIT;
+// The crusher block: exposed counter-rotating blade rollers on top, exactly
+// as dangerous as they look. Ticking, LIT state, and menu opening come from
+// the base.
+public class CrusherBlock extends AbstractMachineBlock {
 
     public CrusherBlock(Properties properties) {
         super(properties);
-        registerDefaultState(stateDefinition.any().setValue(LIT, false));
-    }
-
-    @Override
-    protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
-        builder.add(LIT);
     }
 
     @Override
     public BlockEntity newBlockEntity(BlockPos pos, BlockState state) {
         return new CrusherBlockEntity(pos, state);
-    }
-
-    @Override
-    @Nullable
-    public <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level level, BlockState state, BlockEntityType<T> type) {
-        if (level.isClientSide())
-            return null;
-        return (lvl, pos, st, blockEntity) -> {
-            if (blockEntity instanceof CrusherBlockEntity crusher)
-                crusher.serverTick(lvl, pos, st);
-        };
-    }
-
-    @Override
-    protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hitResult) {
-        if (!level.isClientSide() && player instanceof ServerPlayer serverPlayer
-                && level.getBlockEntity(pos) instanceof CrusherBlockEntity crusher) {
-            serverPlayer.openMenu(crusher, pos);
-        }
-        return InteractionResult.SUCCESS;
     }
 
     // Standing on spinning blade rollers ends the way you'd expect: an
