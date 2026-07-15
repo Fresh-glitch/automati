@@ -129,7 +129,7 @@ public class ErgCableBlock extends Block implements EntityBlock {
             return null;
         return (lvl, pos, st, blockEntity) -> {
             if (blockEntity instanceof ErgCableBlockEntity cable)
-                cable.serverTick(lvl, pos);
+                cable.serverTick(lvl, pos, st);
         };
     }
 }

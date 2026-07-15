@@ -30,9 +30,6 @@ import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.ItemStackHandler;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
-import java.util.List;
-
 // The generator's brain: burns coal/charcoal into Ergs, stores them, and pushes
 // them to adjacent machines every tick. Every piece of burnt fuel leaves ash
 // behind — and a full ash bin clogs the machine until it is emptied.
@@ -94,42 +91,7 @@ public class CoalGeneratorBlockEntity extends AbstractErgBlockEntity implements 
         }
     };
 
-    // What neighbours see: a producer's port. Energy comes OUT, never in —
-    // otherwise cables happily push energy back into their own source
-    private final IEnergyStorage extractOnly = new IEnergyStorage() {
-        @Override
-        public int receiveEnergy(int maxReceive, boolean simulate) {
-            return 0;
-        }
-
-        @Override
-        public int extractEnergy(int maxExtract, boolean simulate) {
-            return energy.extractEnergy(maxExtract, simulate);
-        }
-
-        @Override
-        public int getEnergyStored() {
-            return energy.getEnergyStored();
-        }
-
-        @Override
-        public int getMaxEnergyStored() {
-            return energy.getMaxEnergyStored();
-        }
-
-        @Override
-        public boolean canExtract() {
-            return true;
-        }
-
-        @Override
-        public boolean canReceive() {
-            return false;
-        }
-    };
-
     private final LazyOptional<IItemHandler> itemOptional = LazyOptional.of(() -> automationView);
-    private final LazyOptional<IEnergyStorage> energyOptional = LazyOptional.of(() -> extractOnly);
 
     private int burnTime; // ticks of burn remaining on the current piece of fuel
 
@@ -161,7 +123,7 @@ public class CoalGeneratorBlockEntity extends AbstractErgBlockEntity implements 
     };
 
     public CoalGeneratorBlockEntity(BlockPos pos, BlockState state) {
-        super(Automati.COAL_GENERATOR_BLOCK_ENTITY.get(), pos, state, CAPACITY, MAX_PUSH_PER_TICK);
+        super(Automati.COAL_GENERATOR_BLOCK_ENTITY.get(), pos, state, CAPACITY, MAX_PUSH_PER_TICK, ErgPort.EXTRACT_ONLY);
     }
 
     public void serverTick(Level level, BlockPos pos, BlockState state) {
@@ -216,37 +178,10 @@ public class CoalGeneratorBlockEntity extends AbstractErgBlockEntity implements 
             level.playSound(null, pos, Automati.COAL_GENERATOR_CLOG.get(), SoundSource.BLOCKS, 0.9F, 1.0F);
     }
 
-    // Share this tick's output among every neighbour that can accept it —
-    // parallel loads draw simultaneously, like branches of a real circuit,
-    // rather than queueing up in iteration order
+    // Share this tick's output among every neighbour that can accept it,
+    // parallel-circuit style (the actual distribution lives in the base class)
     private void pushEnergyToNeighbours(Level level, BlockPos pos) {
-        int budget = Math.min(energy.getEnergyStored(), MAX_PUSH_PER_TICK);
-        if (budget == 0)
-            return;
-
-        List<IEnergyStorage> acceptors = new ArrayList<>();
-        for (Direction direction : Direction.values()) {
-            BlockEntity neighbour = level.getBlockEntity(pos.relative(direction));
-            if (neighbour == null)
-                continue;
-            neighbour.getCapability(ForgeCapabilities.ENERGY, direction.getOpposite()).ifPresent(target -> {
-                if (target.canReceive() && target.receiveEnergy(budget, true) > 0)
-                    acceptors.add(target);
-            });
-        }
-        if (acceptors.isEmpty())
-            return;
-
-        int share = Math.max(1, budget / acceptors.size());
-        for (IEnergyStorage target : acceptors) {
-            if (energy.getEnergyStored() == 0)
-                break;
-            int accepted = target.receiveEnergy(Math.min(share, energy.getEnergyStored()), true);
-            if (accepted > 0) {
-                target.receiveEnergy(energy.extractEnergy(accepted, false), false);
-                setChanged();
-            }
-        }
+        distributeEnergy(level, pos, Math.min(energy.getEnergyStored(), MAX_PUSH_PER_TICK), null);
     }
 
     public void dropContents(Level level, BlockPos pos) {
@@ -279,8 +214,6 @@ public class CoalGeneratorBlockEntity extends AbstractErgBlockEntity implements 
 
     @Override
     public <T> LazyOptional<T> getCapability(Capability<T> cap, @Nullable Direction side) {
-        if (cap == ForgeCapabilities.ENERGY)
-            return energyOptional.cast();
         if (cap == ForgeCapabilities.ITEM_HANDLER)
             return itemOptional.cast();
         return super.getCapability(cap, side);
@@ -290,7 +223,6 @@ public class CoalGeneratorBlockEntity extends AbstractErgBlockEntity implements 
     public void invalidateCaps() {
         super.invalidateCaps();
         itemOptional.invalidate();
-        energyOptional.invalidate();
     }
 
     @Override
