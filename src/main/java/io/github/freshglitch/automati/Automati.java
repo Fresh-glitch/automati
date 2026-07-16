@@ -79,6 +79,20 @@ public final class Automati {
     public static final RegistryObject<Item> ASH = ITEMS.register("ash",
         () -> new Item(new Item.Properties().setId(ITEMS.key("ash")))
     );
+    // The Bucking Iron: hand-crushing tool, the sweat-powered tier zero of ore
+    // processing (full crusher yield 50% of the time, half rounded up otherwise)
+    public static final RegistryObject<Item> BUCKING_IRON = ITEMS.register("bucking_iron",
+        () -> new BuckingIronItem(new Item.Properties()
+            .setId(ITEMS.key("bucking_iron"))
+            .durability(192)
+        )
+    );
+
+    // Iron Stick: all-metal tool rod, the bucking iron's handle
+    public static final RegistryObject<Item> IRON_STICK = ITEMS.register("iron_stick",
+        () -> new Item(new Item.Properties().setId(ITEMS.key("iron_stick")))
+    );
+
     // Engineer's Goggles: worn on the head, they reveal the Erg charge of any
     // machine or cable you look at
     public static final RegistryObject<Item> ENGINEERS_GOGGLES = ITEMS.register("engineers_goggles",
@@ -211,6 +225,8 @@ public final class Automati {
             .title(Component.translatable("itemGroup.automati"))
             .icon(() -> COAL_GENERATOR_ITEM.get().getDefaultInstance())
             .displayItems((_, output) -> {
+                output.accept(BUCKING_IRON.get());
+                output.accept(IRON_STICK.get());
                 output.accept(FACTORY_BLOCK_ITEM.get());
                 output.accept(COAL_GENERATOR_ITEM.get());
                 output.accept(CRUSHER_ITEM.get());
