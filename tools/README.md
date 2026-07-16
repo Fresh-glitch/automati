@@ -40,3 +40,7 @@ will overwrite your changes.
   update them if the repo moves.
 - PowerShell variable names are case-insensitive: a local `$w` will clobber a
   script-level `$W`. This also bit us once (the vanishing logo bolt).
+- Bare negative numbers as function arguments bind as STRINGS: `F $x 0 -1`
+  gives `$phase` the string "-1", and `"-1" -lt 0` is FALSE (culture-aware
+  string comparison ignores the hyphen). Always parenthesize: `F $x 0 (-1)`.
+  This bit us too (the electric furnace that was always on).

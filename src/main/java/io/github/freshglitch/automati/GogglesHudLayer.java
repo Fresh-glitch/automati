@@ -50,6 +50,15 @@ public class GogglesHudLayer implements ForgeLayer {
             gg.centeredText(mc.font,
                 Component.literal(String.format("%,d / %,d E", stored, max)),
                 centerX, barTop + BAR_HEIGHT + 3, 0xFFE0E0E0);
+
+            // live port traffic, when there is any: what's flowing in and out
+            if (blockEntity instanceof AbstractErgBlockEntity erg
+                    && (erg.getFlowInRate() > 0 || erg.getFlowOutRate() > 0)) {
+                gg.centeredText(mc.font,
+                    Component.literal(String.format("In %,d · Out %,d E/t",
+                        erg.getFlowInRate(), erg.getFlowOutRate())),
+                    centerX, barTop + BAR_HEIGHT + 14, 0xFF9BD4A0);
+            }
         });
     }
 }
