@@ -10,7 +10,7 @@ license="All Rights Reserved"
 
 [[mods]]
 modId="automati"
-version="1.6.0"
+version="1.7.0"
 displayName="Automati"
 #updateJSONURL="https://example.com/updates.json" #optional
 #displayURL="https://example.com/" #optional

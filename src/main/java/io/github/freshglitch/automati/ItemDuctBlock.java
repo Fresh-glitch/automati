@@ -25,10 +25,10 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.Map;
 
-// The Erg cable: connects to machines and other cables on all six sides,
-// fence-style. Each side gets a boolean blockstate property driving both the
-// multipart model (arms) and the collision shape.
-public class ErgCableBlock extends Block implements EntityBlock {
+// The item duct: moves items in all six directions — the thing vanilla
+// hoppers never learned. Connects to anything with an item inventory,
+// fence-style, exactly like the Erg cable does for energy.
+public class ItemDuctBlock extends Block implements EntityBlock {
     public static final BooleanProperty NORTH = BlockStateProperties.NORTH;
     public static final BooleanProperty SOUTH = BlockStateProperties.SOUTH;
     public static final BooleanProperty EAST = BlockStateProperties.EAST;
@@ -41,10 +41,9 @@ public class ErgCableBlock extends Block implements EntityBlock {
         Direction.EAST, EAST, Direction.WEST, WEST,
         Direction.UP, UP, Direction.DOWN, DOWN);
 
-    // 64 precomputed shapes, indexed by a 6-bit connection mask
     private final VoxelShape[] shapes = buildShapes();
 
-    public ErgCableBlock(Properties properties) {
+    public ItemDuctBlock(Properties properties) {
         super(properties);
         registerDefaultState(stateDefinition.any()
             .setValue(NORTH, false).setValue(SOUTH, false)
@@ -94,15 +93,28 @@ public class ErgCableBlock extends Block implements EntityBlock {
         return shapes[shapeIndex(state)];
     }
 
-    // A side connects when the neighbour offers an energy capability on the
-    // face pointing back at us — machines and other cables both qualify —
-    // and the side hasn't been severed with the wrench
-    private boolean canConnect(BlockGetter level, BlockPos cablePos, Direction direction) {
-        BlockEntity neighbour = level.getBlockEntity(cablePos.relative(direction));
-        if (neighbour == null || !neighbour.getCapability(ForgeCapabilities.ENERGY, direction.getOpposite()).isPresent())
+    // Connection policy: everything with an inventory qualifies, EXCEPT a
+    // hopper's non-nozzle faces — a hopper only pushes out where it points,
+    // so that's the only face worth auto-connecting to. (The wrench can
+    // override this per side.)
+    public static boolean policyAllows(@Nullable BlockGetter level, BlockPos ductPos, Direction side) {
+        if (level == null)
+            return true;
+        BlockState neighbor = level.getBlockState(ductPos.relative(side));
+        if (neighbor.getBlock() instanceof net.minecraft.world.level.block.HopperBlock)
+            return neighbor.getValue(net.minecraft.world.level.block.HopperBlock.FACING) == side.getOpposite();
+        return true;
+    }
+
+    // A side connects when the neighbour offers an item inventory on the face
+    // pointing back at us AND our own policy (possibly wrench-inverted) agrees
+    private boolean canConnect(BlockGetter level, BlockPos ductPos, Direction direction) {
+        BlockEntity neighbour = level.getBlockEntity(ductPos.relative(direction));
+        if (neighbour == null || !neighbour.getCapability(ForgeCapabilities.ITEM_HANDLER, direction.getOpposite()).isPresent())
             return false;
-        return !(level.getBlockEntity(cablePos) instanceof ErgCableBlockEntity cable
-            && cable.isSideInverted(direction));
+        boolean inverted = level.getBlockEntity(ductPos) instanceof ItemDuctBlockEntity duct
+            && duct.isSideInverted(direction);
+        return policyAllows(level, ductPos, direction) ^ inverted;
     }
 
     // Recompute one side's connection after a wrench toggle
@@ -128,7 +140,7 @@ public class ErgCableBlock extends Block implements EntityBlock {
 
     @Override
     public BlockEntity newBlockEntity(BlockPos pos, BlockState state) {
-        return new ErgCableBlockEntity(pos, state);
+        return new ItemDuctBlockEntity(pos, state);
     }
 
     @Override
@@ -137,8 +149,8 @@ public class ErgCableBlock extends Block implements EntityBlock {
         if (level.isClientSide())
             return null;
         return (lvl, pos, st, blockEntity) -> {
-            if (blockEntity instanceof ErgCableBlockEntity cable)
-                cable.serverTick(lvl, pos, st);
+            if (blockEntity instanceof ItemDuctBlockEntity duct)
+                duct.serverTick(lvl, pos, st);
         };
     }
 }

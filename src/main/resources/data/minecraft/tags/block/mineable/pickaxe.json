@@ -6,6 +6,7 @@
     "automati:load_bank",
     "automati:crusher",
     "automati:erg_cable",
-    "automati:electric_furnace"
+    "automati:electric_furnace",
+    "automati:item_duct"
   ]
 }
