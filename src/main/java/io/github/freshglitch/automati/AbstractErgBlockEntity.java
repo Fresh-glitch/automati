@@ -48,6 +48,20 @@ public abstract class AbstractErgBlockEntity extends BlockEntity {
     private int lastSyncedEnergy = -1;
     private int syncCooldown;
 
+    // Flow-rate bookkeeping for the goggles: Ergs crossing the port, averaged
+    // over 20-tick windows so the readout is steady instead of jittery
+    private int flowAccumIn, flowAccumOut, flowSampleTicks;
+    private int flowInRate, flowOutRate;
+    private int lastSyncedFlowIn = -1, lastSyncedFlowOut = -1;
+
+    public int getFlowInRate() {
+        return flowInRate;
+    }
+
+    public int getFlowOutRate() {
+        return flowOutRate;
+    }
+
     protected AbstractErgBlockEntity(BlockEntityType<?> type, BlockPos pos, BlockState state,
                                      int capacity, int maxTransfer, ErgPort port) {
         super(type, pos, state);
@@ -109,15 +123,29 @@ public abstract class AbstractErgBlockEntity extends BlockEntity {
         }
     }
 
-    // Push the energy level to nearby clients at most twice a second, and
-    // only when it actually changed
+    // Push the energy level and flow rates to nearby clients at most twice a
+    // second, and only when something actually changed
     protected void maybeSyncEnergyToClients(Level level, BlockPos pos) {
+        // sample this tick's port traffic into the 20-tick flow window
+        flowAccumIn += energy.pollTickIn();
+        flowAccumOut += energy.pollTickOut();
+        if (++flowSampleTicks >= 20) {
+            flowInRate = flowAccumIn / 20;
+            flowOutRate = flowAccumOut / 20;
+            flowAccumIn = 0;
+            flowAccumOut = 0;
+            flowSampleTicks = 0;
+        }
+
         if (syncCooldown > 0) {
             syncCooldown--;
             return;
         }
-        if (energy.getEnergyStored() != lastSyncedEnergy) {
+        if (energy.getEnergyStored() != lastSyncedEnergy
+                || flowInRate != lastSyncedFlowIn || flowOutRate != lastSyncedFlowOut) {
             lastSyncedEnergy = energy.getEnergyStored();
+            lastSyncedFlowIn = flowInRate;
+            lastSyncedFlowOut = flowOutRate;
             syncCooldown = 10;
             BlockState state = level.getBlockState(pos);
             level.sendBlockUpdated(pos, state, state, 3);
@@ -143,6 +171,8 @@ public abstract class AbstractErgBlockEntity extends BlockEntity {
     public CompoundTag getUpdateTag(HolderLookup.Provider registries) {
         CompoundTag tag = super.getUpdateTag(registries);
         tag.putInt("Energy", energy.getEnergyStored());
+        tag.putInt("FlowIn", flowInRate);
+        tag.putInt("FlowOut", flowOutRate);
         return tag;
     }
 
@@ -161,5 +191,8 @@ public abstract class AbstractErgBlockEntity extends BlockEntity {
     protected void loadAdditional(ValueInput input) {
         super.loadAdditional(input);
         energy.setEnergy(input.getIntOr("Energy", 0));
+        // flow rates only travel in update tags; absent on disk loads is fine
+        flowInRate = input.getIntOr("FlowIn", 0);
+        flowOutRate = input.getIntOr("FlowOut", 0);
     }
 }

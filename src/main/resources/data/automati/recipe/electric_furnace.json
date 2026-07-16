@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "RCR",
+    "CBC",
+    "RCR"
+  ],
+  "key": {
+    "C": "automati:factory_block",
+    "R": "minecraft:redstone",
+    "B": "minecraft:blast_furnace"
+  },
+  "result": {
+    "id": "automati:electric_furnace",
+    "count": 1
+  }
+}

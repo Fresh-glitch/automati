@@ -7,8 +7,41 @@ import net.minecraftforge.energy.IEnergyStorage;
 // energy capability so our own machines (and, if we ever want, other mods') can
 // exchange energy through the standard interface.
 public class ErgStorage extends EnergyStorage {
+    // Ergs that actually crossed this buffer's port since the last poll —
+    // the raw material for the goggles' flow-rate readout
+    private int tickIn;
+    private int tickOut;
+
     public ErgStorage(int capacity, int maxTransfer) {
         super(capacity, maxTransfer, maxTransfer);
+    }
+
+    @Override
+    public int receiveEnergy(int maxReceive, boolean simulate) {
+        int received = super.receiveEnergy(maxReceive, simulate);
+        if (!simulate)
+            tickIn += received;
+        return received;
+    }
+
+    @Override
+    public int extractEnergy(int maxExtract, boolean simulate) {
+        int extracted = super.extractEnergy(maxExtract, simulate);
+        if (!simulate)
+            tickOut += extracted;
+        return extracted;
+    }
+
+    public int pollTickIn() {
+        int v = tickIn;
+        tickIn = 0;
+        return v;
+    }
+
+    public int pollTickOut() {
+        int v = tickOut;
+        tickOut = 0;
+        return v;
     }
 
     // Used by generators: adds energy directly, ignoring the receive-rate limit,

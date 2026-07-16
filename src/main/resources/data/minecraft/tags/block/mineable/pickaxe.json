@@ -5,6 +5,7 @@
     "automati:coal_generator",
     "automati:load_bank",
     "automati:crusher",
-    "automati:erg_cable"
+    "automati:erg_cable",
+    "automati:electric_furnace"
   ]
 }
