@@ -1,0 +1,10 @@
+{
+  "textures": { "cable": "automati:block/item_duct", "particle": "automati:block/item_duct" },
+  "elements": [
+    {
+      "from": [6, 6, 11], "to": [10, 10, 16],
+      "faces": { "south": { "texture": "#cable", "cullface": "south" }, "up": { "texture": "#cable" }, "down": { "texture": "#cable" }, "east": { "texture": "#cable" }, "west": { "texture": "#cable" } }
+    }
+  ]
+}
+

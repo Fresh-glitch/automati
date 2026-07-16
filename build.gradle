@@ -9,7 +9,7 @@ plugins {
     id 'net.minecraftforge.gradle' version '[7.0.17,8)'
 }
 
-version = '1.6.0'
+version = '1.7.0'
 group = 'io.github.freshglitch.automati'
 
 // Mojang ships Java 25 to end users in 26.1+, so your mod should target Java 25.
