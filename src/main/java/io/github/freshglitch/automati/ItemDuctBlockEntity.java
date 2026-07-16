@@ -2,6 +2,12 @@ package io.github.freshglitch.automati;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtOps;
+import net.minecraft.network.protocol.Packet;
+import net.minecraft.network.protocol.game.ClientGamePacketListener;
+import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.world.Containers;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
@@ -127,7 +133,48 @@ public class ItemDuctBlockEntity extends BlockEntity implements WrenchableCondui
         }
     }
 
+    // What the goggles show when looking at this duct
+    public ItemStack getClientBuffer() {
+        return buffer;
+    }
+
+    private ItemStack lastSyncedBuffer = ItemStack.EMPTY;
+    private int syncCooldown;
+
+    // Keep nearby clients informed of the buffer contents (for the goggles
+    // HUD), at most twice a second and only on actual change
+    private void maybeSyncBufferToClients(Level level, BlockPos pos) {
+        if (syncCooldown > 0) {
+            syncCooldown--;
+            return;
+        }
+        if (!ItemStack.matches(buffer, lastSyncedBuffer)) {
+            lastSyncedBuffer = buffer.copy();
+            syncCooldown = 10;
+            BlockState state = level.getBlockState(pos);
+            level.sendBlockUpdated(pos, state, state, 3);
+        }
+    }
+
+    // The tag clients receive on chunk load and on sendBlockUpdated
+    @Override
+    public CompoundTag getUpdateTag(HolderLookup.Provider registries) {
+        CompoundTag tag = super.getUpdateTag(registries);
+        ItemStack.OPTIONAL_CODEC
+            .encodeStart(registries.createSerializationContext(NbtOps.INSTANCE), buffer)
+            .result()
+            .ifPresent(encoded -> tag.put("Buffer", encoded));
+        return tag;
+    }
+
+    @Override
+    public Packet<ClientGamePacketListener> getUpdatePacket() {
+        return ClientboundBlockEntityDataPacket.create(this);
+    }
+
     public void serverTick(Level level, BlockPos pos, BlockState state) {
+        maybeSyncBufferToClients(level, pos);
+
         if (cooldown > 0) {
             cooldown--;
             return;

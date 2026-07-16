@@ -29,6 +29,27 @@ public class GogglesHudLayer implements ForgeLayer {
         if (blockEntity == null)
             return;
 
+        // item ducts have no energy port — the goggles show their cargo instead
+        if (blockEntity instanceof ItemDuctBlockEntity duct) {
+            int centerX = gg.guiWidth() / 2;
+            int top = gg.guiHeight() / 2 + 12;
+            gg.centeredText(mc.font,
+                mc.level.getBlockState(hit.getBlockPos()).getBlock().getName(),
+                centerX, top, 0xFFFFFFFF);
+
+            var cargo = duct.getClientBuffer();
+            if (cargo.isEmpty()) {
+                gg.centeredText(mc.font, Component.literal("Empty"), centerX, top + 12, 0xFF9E9E9E);
+            } else {
+                String label = cargo.getCount() + " × " + cargo.getHoverName().getString();
+                int labelWidth = mc.font.width(label);
+                int rowLeft = centerX - (labelWidth + 20) / 2;
+                gg.item(cargo, rowLeft, top + 10);
+                gg.text(mc.font, Component.literal(label), rowLeft + 20, top + 14, 0xFFE0E0E0);
+            }
+            return;
+        }
+
         blockEntity.getCapability(ForgeCapabilities.ENERGY).ifPresent(storage -> {
             int max = storage.getMaxEnergyStored();
             if (max <= 0)
