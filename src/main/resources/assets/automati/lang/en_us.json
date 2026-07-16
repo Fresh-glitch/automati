@@ -5,6 +5,7 @@
   "block.automati.load_bank": "Load Bank",
   "block.automati.crusher": "Crusher",
   "block.automati.erg_cable": "Erg Cable",
+  "block.automati.electric_furnace": "Electric Furnace",
   "subtitles.automati.crusher_loop": "Crusher grinds",
   "subtitles.automati.coal_generator_loop": "Coal Generator hums",
   "subtitles.automati.coal_generator_clog": "Coal Generator clogs up",

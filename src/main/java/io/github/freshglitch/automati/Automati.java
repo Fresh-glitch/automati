@@ -202,6 +202,28 @@ public final class Automati {
     public static final RegistryObject<SoundEvent> CRUSHER_LOOP = SOUNDS.register("crusher_loop",
         () -> SoundEvent.createVariableRangeEvent(Identifier.fromNamespaceAndPath(MODID, "crusher_loop")));
 
+    // The electric furnace: vanilla smelting on Erg power — 2x speed, 5x the
+    // smelts per coal once the coal has been through a generator
+    public static final RegistryObject<Block> ELECTRIC_FURNACE = BLOCKS.register("electric_furnace",
+        () -> new ElectricFurnaceBlock(BlockBehaviour.Properties.of()
+            .setId(BLOCKS.key("electric_furnace"))
+            .mapColor(MapColor.METAL)
+            .sound(SoundType.METAL)
+            .strength(5.0F, 6.0F)
+            .requiresCorrectToolForDrops()
+            .lightLevel(state -> state.getValue(ElectricFurnaceBlock.LIT) ? 10 : 0)
+        )
+    );
+    public static final RegistryObject<Item> ELECTRIC_FURNACE_ITEM = ITEMS.register("electric_furnace",
+        () -> new BlockItem(ELECTRIC_FURNACE.get(), new Item.Properties().setId(ITEMS.key("electric_furnace")).useBlockDescriptionPrefix())
+    );
+    public static final RegistryObject<BlockEntityType<ElectricFurnaceBlockEntity>> ELECTRIC_FURNACE_BLOCK_ENTITY =
+        BLOCK_ENTITIES.register("electric_furnace",
+            () -> new BlockEntityType<>(ElectricFurnaceBlockEntity::new, java.util.Set.of(ELECTRIC_FURNACE.get())));
+    public static final RegistryObject<MenuType<ElectricFurnaceMenu>> ELECTRIC_FURNACE_MENU =
+        MENUS.register("electric_furnace",
+            () -> IForgeMenuType.create(ElectricFurnaceMenu::new));
+
     // The Erg cable: moves energy between machines, connecting on all six sides
     public static final RegistryObject<Block> ERG_CABLE = BLOCKS.register("erg_cable",
         () -> new ErgCableBlock(BlockBehaviour.Properties.of()
@@ -230,6 +252,7 @@ public final class Automati {
                 output.accept(FACTORY_BLOCK_ITEM.get());
                 output.accept(COAL_GENERATOR_ITEM.get());
                 output.accept(CRUSHER_ITEM.get());
+                output.accept(ELECTRIC_FURNACE_ITEM.get());
                 output.accept(LOAD_BANK_ITEM.get());
                 output.accept(ERG_CABLE_ITEM.get());
                 output.accept(ENGINEERS_GOGGLES.get());
@@ -291,6 +314,7 @@ public final class Automati {
                 MenuScreens.register(COAL_GENERATOR_MENU.get(), CoalGeneratorScreen::new);
                 MenuScreens.register(LOAD_BANK_MENU.get(), LoadBankScreen::new);
                 MenuScreens.register(CRUSHER_MENU.get(), CrusherScreen::new);
+                MenuScreens.register(ELECTRIC_FURNACE_MENU.get(), ElectricFurnaceScreen::new);
             });
         }
     }
