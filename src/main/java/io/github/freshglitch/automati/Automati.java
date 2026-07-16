@@ -93,6 +93,12 @@ public final class Automati {
         () -> new Item(new Item.Properties().setId(ITEMS.key("iron_stick")))
     );
 
+    // Engineer's Wrench: toggles conduit connections — severs auto-links,
+    // splices policy-declined ones (copper head, iron stick handle)
+    public static final RegistryObject<Item> ENGINEERS_WRENCH = ITEMS.register("engineers_wrench",
+        () -> new WrenchItem(new Item.Properties().setId(ITEMS.key("engineers_wrench")).stacksTo(1))
+    );
+
     // Engineer's Goggles: worn on the head, they reveal the Erg charge of any
     // machine or cable you look at
     public static final RegistryObject<Item> ENGINEERS_GOGGLES = ITEMS.register("engineers_goggles",
@@ -241,6 +247,23 @@ public final class Automati {
         BLOCK_ENTITIES.register("erg_cable",
             () -> new BlockEntityType<>(ErgCableBlockEntity::new, java.util.Set.of(ERG_CABLE.get())));
 
+    // The item duct: six-direction item transport — hoppers extract, ducts move
+    public static final RegistryObject<Block> ITEM_DUCT = BLOCKS.register("item_duct",
+        () -> new ItemDuctBlock(BlockBehaviour.Properties.of()
+            .setId(BLOCKS.key("item_duct"))
+            .mapColor(MapColor.METAL)
+            .sound(SoundType.METAL)
+            .strength(1.0F)
+            .noOcclusion()
+        )
+    );
+    public static final RegistryObject<Item> ITEM_DUCT_ITEM = ITEMS.register("item_duct",
+        () -> new BlockItem(ITEM_DUCT.get(), new Item.Properties().setId(ITEMS.key("item_duct")).useBlockDescriptionPrefix())
+    );
+    public static final RegistryObject<BlockEntityType<ItemDuctBlockEntity>> ITEM_DUCT_BLOCK_ENTITY =
+        BLOCK_ENTITIES.register("item_duct",
+            () -> new BlockEntityType<>(ItemDuctBlockEntity::new, java.util.Set.of(ITEM_DUCT.get())));
+
     // The Automati creative tab: named, iconed with the coal generator, placed after the combat tab
     public static final RegistryObject<CreativeModeTab> AUTOMATI_TAB = CREATIVE_MODE_TABS.register("automati_tab", () -> CreativeModeTab.builder()
             .withTabsBefore(CreativeModeTabs.COMBAT)
@@ -255,7 +278,9 @@ public final class Automati {
                 output.accept(ELECTRIC_FURNACE_ITEM.get());
                 output.accept(LOAD_BANK_ITEM.get());
                 output.accept(ERG_CABLE_ITEM.get());
+                output.accept(ITEM_DUCT_ITEM.get());
                 output.accept(ENGINEERS_GOGGLES.get());
+                output.accept(ENGINEERS_WRENCH.get());
                 output.accept(ASH.get());
                 output.accept(IRON_DUST.get());
                 output.accept(COPPER_DUST.get());

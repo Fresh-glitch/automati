@@ -84,12 +84,20 @@ public abstract class AbstractErgBlockEntity extends BlockEntity {
     // this tick (return <= 0 to skip it); pass null for no per-neighbour rule.
     protected void distributeEnergy(Level level, BlockPos pos, int budget,
                                     @Nullable ToIntFunction<BlockEntity> perNeighbourLimit) {
+        distributeEnergy(level, pos, budget, perNeighbourLimit, null);
+    }
+
+    protected void distributeEnergy(Level level, BlockPos pos, int budget,
+                                    @Nullable ToIntFunction<BlockEntity> perNeighbourLimit,
+                                    @Nullable java.util.function.Predicate<Direction> sideFilter) {
         if (budget <= 0 || energy.getEnergyStored() == 0)
             return;
 
         List<IEnergyStorage> targets = new ArrayList<>();
         List<Integer> limits = new ArrayList<>();
         for (Direction direction : Direction.values()) {
+            if (sideFilter != null && !sideFilter.test(direction))
+                continue;
             BlockEntity neighbour = level.getBlockEntity(pos.relative(direction));
             if (neighbour == null)
                 continue;

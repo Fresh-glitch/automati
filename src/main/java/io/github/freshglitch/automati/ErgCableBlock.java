@@ -95,10 +95,19 @@ public class ErgCableBlock extends Block implements EntityBlock {
     }
 
     // A side connects when the neighbour offers an energy capability on the
-    // face pointing back at us — machines and other cables both qualify
-    private boolean canConnect(BlockGetter level, BlockPos neighborPos, Direction towardSelf) {
-        BlockEntity neighbour = level.getBlockEntity(neighborPos);
-        return neighbour != null && neighbour.getCapability(ForgeCapabilities.ENERGY, towardSelf).isPresent();
+    // face pointing back at us — machines and other cables both qualify —
+    // and the side hasn't been severed with the wrench
+    private boolean canConnect(BlockGetter level, BlockPos cablePos, Direction direction) {
+        BlockEntity neighbour = level.getBlockEntity(cablePos.relative(direction));
+        if (neighbour == null || !neighbour.getCapability(ForgeCapabilities.ENERGY, direction.getOpposite()).isPresent())
+            return false;
+        return !(level.getBlockEntity(cablePos) instanceof ErgCableBlockEntity cable
+            && cable.isSideInverted(direction));
+    }
+
+    // Recompute one side's connection after a wrench toggle
+    public BlockState refreshSide(BlockState state, BlockGetter level, BlockPos pos, Direction side) {
+        return state.setValue(PROPERTY_BY_DIRECTION.get(side), canConnect(level, pos, side));
     }
 
     @Override
@@ -106,7 +115,7 @@ public class ErgCableBlock extends Block implements EntityBlock {
         BlockState state = defaultBlockState();
         for (Direction direction : Direction.values()) {
             state = state.setValue(PROPERTY_BY_DIRECTION.get(direction),
-                canConnect(context.getLevel(), context.getClickedPos().relative(direction), direction.getOpposite()));
+                canConnect(context.getLevel(), context.getClickedPos(), direction));
         }
         return state;
     }
@@ -114,7 +123,7 @@ public class ErgCableBlock extends Block implements EntityBlock {
     @Override
     protected BlockState updateShape(BlockState state, LevelReader level, ScheduledTickAccess ticks, BlockPos pos, Direction direction, BlockPos neighborPos, BlockState neighborState, RandomSource random) {
         return state.setValue(PROPERTY_BY_DIRECTION.get(direction),
-            canConnect(level, neighborPos, direction.getOpposite()));
+            canConnect(level, pos, direction));
     }
 
     @Override
