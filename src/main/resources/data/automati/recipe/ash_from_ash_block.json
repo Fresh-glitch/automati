@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    "automati:ash_block"
+  ],
+  "result": {
+    "id": "automati:ash",
+    "count": 9
+  }
+}

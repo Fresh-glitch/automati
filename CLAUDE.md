@@ -85,6 +85,10 @@ Known 26.2 changes already applied in this codebase:
 - Screens use `GuiGraphicsExtractor` + `extractBackground`/`extractRenderState`,
   `RenderPipelines.GUI_TEXTURED` blits, `setTooltipForNextFrame`
 - Drop-contents-on-break hook is `BlockEntity.preRemoveSideEffects`
+- `DirectionProperty` is gone — `BlockStateProperties.FACING` is `EnumProperty<Direction>`
+- Item tooltips: `appendHoverText(ItemStack, Item.TooltipContext, TooltipDisplay,
+  Consumer<Component>, TooltipFlag)` — consumer-based, no List (marked deprecated
+  upstream but still the operative hook; vanilla items override it too)
 
 Gotchas:
 - `ContainerData` slots are 16-bit — split 32-bit energy values across two slots

@@ -63,14 +63,9 @@ $g = [System.Drawing.Graphics]::FromImage($gui)
 $body = C 198 198 198; $bevelL = C 255 255 255; $bevelD = C 85 85 85
 $slotD = C 55 55 55; $slotL = C 255 255 255; $slotBody = C 139 139 139
 
-# panel body + bevel
-$g.FillRectangle((New-Object System.Drawing.SolidBrush $body), 0, 0, 176, 166)
-for ($i = 0; $i -lt 3; $i++) {
-  $g.FillRectangle((New-Object System.Drawing.SolidBrush $bevelL), 0, $i, 176, 1)   # top
-  $g.FillRectangle((New-Object System.Drawing.SolidBrush $bevelL), $i, 0, 1, 166)   # left
-  $g.FillRectangle((New-Object System.Drawing.SolidBrush $bevelD), 0, 165-$i, 176, 1) # bottom
-  $g.FillRectangle((New-Object System.Drawing.SolidBrush $bevelD), 175-$i, 0, 1, 166) # right
-}
+# rounded vanilla-style panel + embossed corner gears (shared painter)
+. "P:\ClaudeMods\ExampleMod\my-first-mod\tools\gui_common.ps1"
+Draw-GuiPanel $gui
 
 function Draw-Slot($x, $y, $w, $h, $interior) {
   # inset box: dark top/left, light bottom/right

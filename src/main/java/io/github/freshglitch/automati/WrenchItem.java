@@ -25,9 +25,37 @@ public class WrenchItem extends Item {
     }
 
     @Override
+    public void appendHoverText(net.minecraft.world.item.ItemStack stack, TooltipContext context,
+                                net.minecraft.world.item.component.TooltipDisplay display,
+                                java.util.function.Consumer<net.minecraft.network.chat.Component> tooltip,
+                                net.minecraft.world.item.TooltipFlag flag) {
+        tooltip.accept(net.minecraft.network.chat.Component
+            .translatable("tooltip.automati.engineers_wrench.conduits")
+            .withStyle(net.minecraft.ChatFormatting.GRAY));
+        tooltip.accept(net.minecraft.network.chat.Component
+            .translatable("tooltip.automati.engineers_wrench.jar")
+            .withStyle(net.minecraft.ChatFormatting.GRAY));
+    }
+
+    @Override
     public InteractionResult useOn(UseOnContext context) {
         Level level = context.getLevel();
         BlockPos pos = context.getClickedPos();
+
+        // Erg Jar: the wrench moves the copper terminal to the clicked face.
+        // Checked first so clicking a jar face never falls through to the
+        // grazing-angle conduit grace below.
+        BlockState clickedState = level.getBlockState(pos);
+        if (clickedState.getBlock() instanceof ErgJarBlock) {
+            if (level.isClientSide())
+                return InteractionResult.SUCCESS;
+            Direction face = context.getClickedFace();
+            if (clickedState.getValue(ErgJarBlock.FACING) != face) {
+                level.setBlock(pos, clickedState.setValue(ErgJarBlock.FACING, face), 3);
+                level.playSound(null, pos, SoundEvents.LANTERN_PLACE, SoundSource.BLOCKS, 0.7F, 1.1F);
+            }
+            return InteractionResult.SUCCESS;
+        }
 
         if (level.getBlockEntity(pos) instanceof WrenchableConduit conduit) {
             if (level.isClientSide())
