@@ -26,6 +26,14 @@ public abstract class AbstractErgScreen<T extends AbstractErgMenu> extends Abstr
         return texture;
     }
 
+    // Machine names sit top-center, the way vanilla's furnace and crafting
+    // table do (the "Inventory" label stays left-aligned, also like vanilla)
+    @Override
+    protected void init() {
+        super.init();
+        titleLabelX = (imageWidth - font.width(title)) / 2;
+    }
+
     @Override
     public void extractBackground(GuiGraphicsExtractor extractor, int mouseX, int mouseY, float partialTick) {
         extractor.blit(RenderPipelines.GUI_TEXTURED, texture, leftPos, topPos, 0.0F, 0.0F, imageWidth, imageHeight, 256, 256);

@@ -49,6 +49,6 @@ public class LoadBankScreen extends AbstractErgScreen<LoadBankMenu> {
         // The number the whole machine exists for
         extractor.centeredText(font,
             Component.literal(String.format("%,d E/t", menu.getDumpRate())),
-            leftPos + 88, topPos + 55, 0xFF707070);
+            leftPos + 88, topPos + 55, 0xFF9BD4A0);
     }
 }
