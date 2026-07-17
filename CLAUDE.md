@@ -59,6 +59,13 @@ All Java code lives in one flat package: `src/main/java/io/github/freshglitch/au
 - **Resources**: client-side under `assets/automati/` (models, blockstates,
   textures, lang, sounds), server/data under `data/automati/` (recipes, loot
   tables, damage types) plus vanilla tag overrides under `data/minecraft/tags/`.
+- **3D item models** (reference: the Engineer's Wrench): `.bbmodel` sources
+  live in `tools/blockbench/`; export as Java Block/Item JSON into
+  `assets/automati/models/item/` (the `assets/automati/items/` definition
+  doesn't change — it points at the model path). Shading is baked into a
+  16x16 swatch atlas with per-face UVs (lit tops, gradient sides, shadowed
+  undersides — fake AO); atlases are script-generated like every other
+  texture (see `tools/README.md`).
 
 ## Minecraft 26.2 API drift — do not guess symbols
 
@@ -83,3 +90,11 @@ Gotchas:
 - `ContainerData` slots are 16-bit — split 32-bit energy values across two slots
 - Menus need a ~5-tick delayed `broadcastFullState()` after opening (initial sync
   races the open packet)
+- Vanilla `item/handheld` display transforms assume the sprite's baked 45°
+  diagonal. Vertically-built 3D item models must override them: display
+  rotations compose Z-first, so subtract 45 from each hand slot's Z
+  (thirdperson_righthand `[0,-90,10]`, firstperson_righthand `[0,-90,-20]`,
+  lefthand mirrored). The GUI tool-tilt (head to the top-right) is
+  `[0,0,-45]` — NOT +45; the GUI renderer flips Y, inverting rotation
+  direction in that slot only. Verify in Blockbench's Display mode before
+  shipping (field-validated on the wrench, v1.8.0).
