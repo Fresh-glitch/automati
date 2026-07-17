@@ -5,6 +5,7 @@ bin
 .metadata
 .classpath
 .project
+.factorypath
 
 # idea
 out
@@ -21,6 +22,7 @@ build
 eclipse
 run
 run-data
+.mcp.json
 
 # Files from Forge MDK
 forge_README.txt
