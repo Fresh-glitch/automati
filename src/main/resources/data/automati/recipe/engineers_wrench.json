@@ -2,13 +2,13 @@
   "type": "minecraft:crafting_shaped",
   "category": "equipment",
   "pattern": [
-    "C C",
-    " S ",
-    " S "
+    "I I",
+    " CC",
+    " C "
   ],
   "key": {
-    "C": "minecraft:copper_ingot",
-    "S": "automati:iron_stick"
+    "I": "minecraft:iron_ingot",
+    "C": "minecraft:copper_ingot"
   },
   "result": {
     "id": "automati:engineers_wrench",
