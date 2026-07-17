@@ -247,6 +247,43 @@ public final class Automati {
         BLOCK_ENTITIES.register("erg_cable",
             () -> new BlockEntityType<>(ErgCableBlockEntity::new, java.util.Set.of(ERG_CABLE.get())));
 
+    // Ash Block: nine ash pressed into a solid block — storage, and the carbon
+    // core of the Erg Jar (a Leclanché cell would approve)
+    public static final RegistryObject<Block> ASH_BLOCK = BLOCKS.register("ash_block",
+        () -> new Block(BlockBehaviour.Properties.of()
+            .setId(BLOCKS.key("ash_block"))
+            .mapColor(MapColor.COLOR_GRAY)
+            .sound(SoundType.SAND)
+            .strength(0.5F)
+        )
+    );
+    public static final RegistryObject<Item> ASH_BLOCK_ITEM = ITEMS.register("ash_block",
+        () -> new BlockItem(ASH_BLOCK.get(), new Item.Properties().setId(ITEMS.key("ash_block")).useBlockDescriptionPrefix())
+    );
+
+    // The Erg Jar: Automati's battery — 320,000 E (five lumps of coal), 80 E/t
+    // in and out. Iron electrode accepts, copper terminal opposite discharges;
+    // the wrench moves the terminal. Charge pips glow brighter as it fills.
+    public static final RegistryObject<Block> ERG_JAR = BLOCKS.register("erg_jar",
+        () -> new ErgJarBlock(BlockBehaviour.Properties.of()
+            .setId(BLOCKS.key("erg_jar"))
+            .mapColor(MapColor.METAL)
+            .sound(SoundType.METAL)
+            .strength(5.0F, 6.0F)
+            .requiresCorrectToolForDrops()
+            .lightLevel(state -> state.getValue(ErgJarBlock.CHARGE) * 2)
+        )
+    );
+    public static final RegistryObject<Item> ERG_JAR_ITEM = ITEMS.register("erg_jar",
+        () -> new BlockItem(ERG_JAR.get(), new Item.Properties().setId(ITEMS.key("erg_jar")).useBlockDescriptionPrefix())
+    );
+    public static final RegistryObject<BlockEntityType<ErgJarBlockEntity>> ERG_JAR_BLOCK_ENTITY =
+        BLOCK_ENTITIES.register("erg_jar",
+            () -> new BlockEntityType<>(ErgJarBlockEntity::new, java.util.Set.of(ERG_JAR.get())));
+    public static final RegistryObject<MenuType<ErgJarMenu>> ERG_JAR_MENU =
+        MENUS.register("erg_jar",
+            () -> IForgeMenuType.create(ErgJarMenu::new));
+
     // The item duct: six-direction item transport — hoppers extract, ducts move
     public static final RegistryObject<Block> ITEM_DUCT = BLOCKS.register("item_duct",
         () -> new ItemDuctBlock(BlockBehaviour.Properties.of()
@@ -277,11 +314,13 @@ public final class Automati {
                 output.accept(CRUSHER_ITEM.get());
                 output.accept(ELECTRIC_FURNACE_ITEM.get());
                 output.accept(LOAD_BANK_ITEM.get());
+                output.accept(ERG_JAR_ITEM.get());
                 output.accept(ERG_CABLE_ITEM.get());
                 output.accept(ITEM_DUCT_ITEM.get());
                 output.accept(ENGINEERS_GOGGLES.get());
                 output.accept(ENGINEERS_WRENCH.get());
                 output.accept(ASH.get());
+                output.accept(ASH_BLOCK_ITEM.get());
                 output.accept(IRON_DUST.get());
                 output.accept(COPPER_DUST.get());
                 output.accept(GOLD_DUST.get());
@@ -340,6 +379,7 @@ public final class Automati {
                 MenuScreens.register(LOAD_BANK_MENU.get(), LoadBankScreen::new);
                 MenuScreens.register(CRUSHER_MENU.get(), CrusherScreen::new);
                 MenuScreens.register(ELECTRIC_FURNACE_MENU.get(), ElectricFurnaceScreen::new);
+                MenuScreens.register(ERG_JAR_MENU.get(), ErgJarScreen::new);
             });
         }
     }

@@ -96,13 +96,9 @@ $g = [System.Drawing.Graphics]::FromImage($gui)
 $body = C 198 198 198; $bevelL = C 255 255 255; $bevelD = C 85 85 85
 $slotD = C 55 55 55; $slotL = C 255 255 255; $slotBody = C 139 139 139
 
-$g.FillRectangle((New-Object System.Drawing.SolidBrush $body), 0, 0, 176, 166)
-for ($i = 0; $i -lt 3; $i++) {
-  $g.FillRectangle((New-Object System.Drawing.SolidBrush $bevelL), 0, $i, 176, 1)
-  $g.FillRectangle((New-Object System.Drawing.SolidBrush $bevelL), $i, 0, 1, 166)
-  $g.FillRectangle((New-Object System.Drawing.SolidBrush $bevelD), 0, 165-$i, 176, 1)
-  $g.FillRectangle((New-Object System.Drawing.SolidBrush $bevelD), 175-$i, 0, 1, 166)
-}
+# rounded vanilla-style panel + embossed corner gears (shared painter)
+. "P:\ClaudeMods\ExampleMod\my-first-mod\tools\gui_common.ps1"
+Draw-GuiPanel $gui
 
 function Draw-Slot($x, $y, $w, $h, $interior) {
   $g.FillRectangle((New-Object System.Drawing.SolidBrush $slotD), $x, $y, $w, 1)
@@ -121,6 +117,9 @@ Draw-Slot 67 33 42 14 (C 43 43 43)
 for ($t = 1; $t -lt 4; $t++) {
   $g.FillRectangle((New-Object System.Drawing.SolidBrush (C 66 66 66)), (68 + $t*10), 34, 1, 12)
 }
+
+# dark instrument plaque behind the dump-rate readout (goggles-green text)
+Draw-Slot 57 51 62 15 (C 43 43 43)
 
 # Erg buffer socket at (151,17) 18x52 with a ridge every 5px = 1,000 E
 Draw-Slot 151 17 18 52 (C 43 43 43)

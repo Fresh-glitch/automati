@@ -7,6 +7,8 @@
   "block.automati.erg_cable": "Erg Cable",
   "block.automati.item_duct": "Item Duct",
   "block.automati.electric_furnace": "Electric Furnace",
+  "block.automati.erg_jar": "Erg Jar",
+  "block.automati.ash_block": "Ash Block",
   "subtitles.automati.crusher_loop": "Crusher grinds",
   "subtitles.automati.coal_generator_loop": "Coal Generator hums",
   "subtitles.automati.coal_generator_clog": "Coal Generator clogs up",
@@ -18,6 +20,8 @@
   "item.automati.iron_dust": "Iron Dust",
   "item.automati.copper_dust": "Copper Dust",
   "item.automati.gold_dust": "Gold Dust",
+  "tooltip.automati.engineers_wrench.conduits": "Severs or splices conduit connections",
+  "tooltip.automati.engineers_wrench.jar": "Moves an Erg Jar's copper terminal",
   "gui.automati.coal_generator.clogged": "Clogged with ash! Empty the byproduct slot.",
   "death.attack.crusher": "%1$s was shredded by a Crusher",
   "death.attack.crusher.player": "%1$s was shredded by a Crusher whilst escaping %2$s"
