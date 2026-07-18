@@ -18,11 +18,13 @@ import org.jetbrains.annotations.Nullable;
 
 // The Erg Jar's brain. Storage-only: no fuel, no recipes — Ergs enter through
 // the iron electrode face, and discharge through the copper terminal on the
-// opposite face, up to 80 E/t each way. The electrode stack runs straight
-// through the jar (iron base -> ash core -> copper cap, like the recipe
-// column); the four shell faces carry no port at all. Direction is enforced
-// by per-side capability views, the same port discipline that keeps the rest
-// of the grid from flowing backwards.
+// opposite face, up to 80 E/t each way. The cell runs straight through the
+// jar like the recipe column: iron electrode -> ash electrolyte (potash, as
+// in an alkaline battery) -> copper electrode. Iron and copper are a real
+// galvanic pair; the ash is the medium between them, not a conductor. The
+// four shell faces carry no port at all. Direction is enforced by per-side
+// capability views, the same port discipline that keeps the rest of the grid
+// from flowing backwards.
 public class ErgJarBlockEntity extends AbstractErgBlockEntity implements MenuProvider {
     public static final int CAPACITY = 320_000;  // exactly five lumps of coal (5 x 64,000 E)
     public static final int MAX_TRANSFER = 80;   // charge/discharge ceiling, Ergs per tick

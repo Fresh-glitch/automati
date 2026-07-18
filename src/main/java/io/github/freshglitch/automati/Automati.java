@@ -247,8 +247,10 @@ public final class Automati {
         BLOCK_ENTITIES.register("erg_cable",
             () -> new BlockEntityType<>(ErgCableBlockEntity::new, java.util.Set.of(ERG_CABLE.get())));
 
-    // Ash Block: nine ash pressed into a solid block — storage, and the carbon
-    // core of the Erg Jar (a Leclanché cell would approve)
+    // Ash Block: nine ash pressed into a solid block — storage, and the Erg
+    // Jar's electrolyte bed. Ash is the old-world source of potash lye, the
+    // same alkaline chemistry as a modern KOH battery; dry ash itself is an
+    // insulator (the carbon burned away as CO2 — that was the point)
     public static final RegistryObject<Block> ASH_BLOCK = BLOCKS.register("ash_block",
         () -> new Block(BlockBehaviour.Properties.of()
             .setId(BLOCKS.key("ash_block"))
