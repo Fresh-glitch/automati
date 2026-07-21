@@ -1,0 +1,8 @@
+{
+  "parent": "minecraft:block/cube_bottom_top",
+  "textures": {
+    "bottom": "automati:block/erg_jar_electrode",
+    "side": "automati:block/erg_jar_side_0",
+    "top": "automati:block/erg_jar_terminal"
+  }
+}

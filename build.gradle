@@ -9,7 +9,7 @@ plugins {
     id 'net.minecraftforge.gradle' version '[7.0.17,8)'
 }
 
-version = '1.9.0'
+version = '1.10.0'
 group = 'io.github.freshglitch.automati'
 
 // Mojang ships Java 25 to end users in 26.1+, so your mod should target Java 25.
@@ -39,6 +39,24 @@ minecraft {
             workingDir = layout.projectDirectory.dir('run-data')
 
             args '--mod', 'automati', '--all', '--output', layout.projectDirectory.dir('src/generated/resources'), '--existing', layout.projectDirectory.dir('src/main/resources')
+        }
+    }
+}
+
+// Vanilla's ModelProvider backfills item definitions for every block in the
+// registry (vanilla's included). Prune the overreach after each runData so
+// only Automati's intentional output survives; nuking the cache keeps the
+// providers honest on the next run.
+tasks.matching { it.name == 'runData' }.configureEach {
+    def genRoot = file('src/generated/resources')
+    doLast {
+        // plain java.io.File only -- Gradle script objects are off-limits at
+        // execution time under the configuration cache
+        new File(genRoot, 'assets/minecraft').deleteDir()
+        new File(genRoot, '.cache').deleteDir()
+        def keep = ['erg_jar.json', 'ash_block.json'] as Set
+        new File(genRoot, 'assets/automati/items').listFiles()?.each { f ->
+            if (!keep.contains(f.name)) f.delete()
         }
     }
 }

@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "key": {
+    "A": "automati:ash_block",
+    "C": "minecraft:copper_ingot",
+    "F": "automati:factory_block",
+    "I": "minecraft:iron_ingot"
+  },
+  "pattern": [
+    "FCF",
+    "FAF",
+    "FIF"
+  ],
+  "result": {
+    "id": "automati:erg_jar"
+  }
+}

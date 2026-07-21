@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "key": {
+    "C": "minecraft:copper_ingot",
+    "S": "minecraft:smooth_stone"
+  },
+  "pattern": [
+    "SSS",
+    "CCC",
+    "SSS"
+  ],
+  "result": {
+    "count": 6,
+    "id": "automati:erg_cable"
+  }
+}
