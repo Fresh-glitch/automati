@@ -29,6 +29,11 @@ will overwrite your changes.
 | `make_wrench_atlas.ps1` | `engineers_wrench_atlas.png` (3D wrench swatch atlas: fake AO, knurl, grip bands) |
 | `make_ergjar_textures.ps1` | Erg Jar sides (charge pips 0-4), copper terminal, iron electrode, `ash_block.png`, GUI |
 | `gui_common.ps1` | *(shared, dot-sourced — writes nothing itself)* rounded vanilla-style GUI panel + embossed corner gears; used by all five `gui/container` owners |
+| `make_all.ps1` | *(runner)* regenerates every script-owned asset in ownership-correct order; `-IncludeSounds` for the OGGs |
+| `release.ps1` | *(pipeline)* version bump (both files, sync-checked) + datagen refresh + build + commit + push; changelog and platform uploads stay manual |
+
+Retired (kept for history, not run by `make_all.ps1`): `make_wrench_texture.ps1` —
+the 2D wrench sprite it generates was replaced by the 3D model + atlas in v1.8.0.
 | `make_sound.ps1` | `coal_generator_loop.ogg` (synthesized hum) |
 | `make_clog_sound.ps1` | `coal_generator_clog.ogg` |
 | `make_crusher_sound.ps1` | `crusher_loop.ogg` (grind loop) |

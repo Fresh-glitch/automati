@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "key": {
+    "C": "automati:factory_block",
+    "F": "minecraft:furnace",
+    "R": "minecraft:redstone"
+  },
+  "pattern": [
+    "RCR",
+    "CFC",
+    "RCR"
+  ],
+  "result": {
+    "id": "automati:coal_generator"
+  }
+}

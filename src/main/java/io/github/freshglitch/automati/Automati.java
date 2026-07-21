@@ -126,6 +126,43 @@ public final class Automati {
         () -> new Item(new Item.Properties().setId(ITEMS.key("gold_dust")))
     );
 
+    // One machine = one registration call. Bundles the four registry entries
+    // every machine needs (block, block item, block entity type, menu type)
+    // with the standard machine properties (metal, strength 5/6, needs the
+    // right tool); per-machine personality (light levels etc.) goes through
+    // the props customizer. Conduits (cable/duct) don't fit this mold — no
+    // menu — and register manually below.
+    public record Machine<BE extends net.minecraft.world.level.block.entity.BlockEntity,
+                          M extends net.minecraft.world.inventory.AbstractContainerMenu>(
+        RegistryObject<Block> block,
+        RegistryObject<Item> item,
+        RegistryObject<BlockEntityType<BE>> blockEntity,
+        RegistryObject<MenuType<M>> menu) {
+    }
+
+    private static <BE extends net.minecraft.world.level.block.entity.BlockEntity,
+                    M extends net.minecraft.world.inventory.AbstractContainerMenu>
+    Machine<BE, M> registerMachine(String name,
+                                   java.util.function.Function<BlockBehaviour.Properties, ? extends Block> blockFactory,
+                                   java.util.function.UnaryOperator<BlockBehaviour.Properties> props,
+                                   BlockEntityType.BlockEntitySupplier<BE> blockEntityFactory,
+                                   net.minecraftforge.network.IContainerFactory<M> menuFactory) {
+        RegistryObject<Block> block = BLOCKS.register(name, () -> blockFactory.apply(
+            props.apply(BlockBehaviour.Properties.of()
+                .setId(BLOCKS.key(name))
+                .mapColor(MapColor.METAL)
+                .sound(SoundType.METAL)
+                .strength(5.0F, 6.0F)
+                .requiresCorrectToolForDrops())));
+        RegistryObject<Item> item = ITEMS.register(name, () -> new BlockItem(block.get(),
+            new Item.Properties().setId(ITEMS.key(name)).useBlockDescriptionPrefix()));
+        RegistryObject<BlockEntityType<BE>> blockEntity = BLOCK_ENTITIES.register(name,
+            () -> new BlockEntityType<>(blockEntityFactory, java.util.Set.of(block.get())));
+        RegistryObject<MenuType<M>> menu = MENUS.register(name,
+            () -> IForgeMenuType.create(menuFactory));
+        return new Machine<>(block, item, blockEntity, menu);
+    }
+
     // Creates a new Block with the id "automati:factory_block", combining the namespace and path
     public static final RegistryObject<Block> FACTORY_BLOCK = BLOCKS.register("factory_block",
         () -> new FactoryBlock(BlockBehaviour.Properties.of()
@@ -142,93 +179,48 @@ public final class Automati {
     );
 
     // The coal generator: Automati's first machine, burns coal/charcoal into Ergs
-    public static final RegistryObject<Block> COAL_GENERATOR = BLOCKS.register("coal_generator",
-        () -> new CoalGeneratorBlock(BlockBehaviour.Properties.of()
-            .setId(BLOCKS.key("coal_generator"))
-            .mapColor(MapColor.METAL)
-            .sound(SoundType.METAL)
-            .strength(5.0F, 6.0F)
-            .requiresCorrectToolForDrops()
-            .lightLevel(state -> state.getValue(CoalGeneratorBlock.LIT) ? 13 : 0)
-        )
-    );
-    public static final RegistryObject<Item> COAL_GENERATOR_ITEM = ITEMS.register("coal_generator",
-        () -> new BlockItem(COAL_GENERATOR.get(), new Item.Properties().setId(ITEMS.key("coal_generator")).useBlockDescriptionPrefix())
-    );
-    // The block entity type ties the generator block to its ticking logic
-    public static final RegistryObject<BlockEntityType<CoalGeneratorBlockEntity>> COAL_GENERATOR_BLOCK_ENTITY =
-        BLOCK_ENTITIES.register("coal_generator",
-            () -> new BlockEntityType<>(CoalGeneratorBlockEntity::new, java.util.Set.of(COAL_GENERATOR.get())));
-    // The menu type lets the server open the generator GUI on the client
-    public static final RegistryObject<MenuType<CoalGeneratorMenu>> COAL_GENERATOR_MENU =
-        MENUS.register("coal_generator",
-            () -> IForgeMenuType.create(CoalGeneratorMenu::new));
+    public static final Machine<CoalGeneratorBlockEntity, CoalGeneratorMenu> COAL_GENERATOR_MACHINE =
+        registerMachine("coal_generator", CoalGeneratorBlock::new,
+            p -> p.lightLevel(state -> state.getValue(CoalGeneratorBlock.LIT) ? 13 : 0),
+            CoalGeneratorBlockEntity::new, CoalGeneratorMenu::new);
+    public static final RegistryObject<Block> COAL_GENERATOR = COAL_GENERATOR_MACHINE.block();
+    public static final RegistryObject<Item> COAL_GENERATOR_ITEM = COAL_GENERATOR_MACHINE.item();
+    public static final RegistryObject<BlockEntityType<CoalGeneratorBlockEntity>> COAL_GENERATOR_BLOCK_ENTITY = COAL_GENERATOR_MACHINE.blockEntity();
+    public static final RegistryObject<MenuType<CoalGeneratorMenu>> COAL_GENERATOR_MENU = COAL_GENERATOR_MACHINE.menu();
 
     // The load bank: a configurable energy sink for testing generators under load
-    public static final RegistryObject<Block> LOAD_BANK = BLOCKS.register("load_bank",
-        () -> new LoadBankBlock(BlockBehaviour.Properties.of()
-            .setId(BLOCKS.key("load_bank"))
-            .mapColor(MapColor.METAL)
-            .sound(SoundType.METAL)
-            .strength(5.0F, 6.0F)
-            .requiresCorrectToolForDrops()
-            .lightLevel(state -> state.getValue(LoadBankBlock.LIT) ? 7 : 0)
-        )
-    );
-    public static final RegistryObject<Item> LOAD_BANK_ITEM = ITEMS.register("load_bank",
-        () -> new BlockItem(LOAD_BANK.get(), new Item.Properties().setId(ITEMS.key("load_bank")).useBlockDescriptionPrefix())
-    );
-    public static final RegistryObject<BlockEntityType<LoadBankBlockEntity>> LOAD_BANK_BLOCK_ENTITY =
-        BLOCK_ENTITIES.register("load_bank",
-            () -> new BlockEntityType<>(LoadBankBlockEntity::new, java.util.Set.of(LOAD_BANK.get())));
-    public static final RegistryObject<MenuType<LoadBankMenu>> LOAD_BANK_MENU =
-        MENUS.register("load_bank",
-            () -> IForgeMenuType.create(LoadBankMenu::new));
+    public static final Machine<LoadBankBlockEntity, LoadBankMenu> LOAD_BANK_MACHINE =
+        registerMachine("load_bank", LoadBankBlock::new,
+            p -> p.lightLevel(state -> state.getValue(LoadBankBlock.LIT) ? 7 : 0),
+            LoadBankBlockEntity::new, LoadBankMenu::new);
+    public static final RegistryObject<Block> LOAD_BANK = LOAD_BANK_MACHINE.block();
+    public static final RegistryObject<Item> LOAD_BANK_ITEM = LOAD_BANK_MACHINE.item();
+    public static final RegistryObject<BlockEntityType<LoadBankBlockEntity>> LOAD_BANK_BLOCK_ENTITY = LOAD_BANK_MACHINE.blockEntity();
+    public static final RegistryObject<MenuType<LoadBankMenu>> LOAD_BANK_MENU = LOAD_BANK_MACHINE.menu();
 
     // The crusher: a shredder that grinds ores into doubled raw metal, powered by Ergs
-    public static final RegistryObject<Block> CRUSHER = BLOCKS.register("crusher",
-        () -> new CrusherBlock(BlockBehaviour.Properties.of()
-            .setId(BLOCKS.key("crusher"))
-            .mapColor(MapColor.METAL)
-            .sound(SoundType.METAL)
-            .strength(5.0F, 6.0F)
-            .requiresCorrectToolForDrops()
-        )
-    );
-    public static final RegistryObject<Item> CRUSHER_ITEM = ITEMS.register("crusher",
-        () -> new BlockItem(CRUSHER.get(), new Item.Properties().setId(ITEMS.key("crusher")).useBlockDescriptionPrefix())
-    );
-    public static final RegistryObject<BlockEntityType<CrusherBlockEntity>> CRUSHER_BLOCK_ENTITY =
-        BLOCK_ENTITIES.register("crusher",
-            () -> new BlockEntityType<>(CrusherBlockEntity::new, java.util.Set.of(CRUSHER.get())));
-    public static final RegistryObject<MenuType<CrusherMenu>> CRUSHER_MENU =
-        MENUS.register("crusher",
-            () -> IForgeMenuType.create(CrusherMenu::new));
+    public static final Machine<CrusherBlockEntity, CrusherMenu> CRUSHER_MACHINE =
+        registerMachine("crusher", CrusherBlock::new,
+            java.util.function.UnaryOperator.identity(),
+            CrusherBlockEntity::new, CrusherMenu::new);
+    public static final RegistryObject<Block> CRUSHER = CRUSHER_MACHINE.block();
+    public static final RegistryObject<Item> CRUSHER_ITEM = CRUSHER_MACHINE.item();
+    public static final RegistryObject<BlockEntityType<CrusherBlockEntity>> CRUSHER_BLOCK_ENTITY = CRUSHER_MACHINE.blockEntity();
+    public static final RegistryObject<MenuType<CrusherMenu>> CRUSHER_MENU = CRUSHER_MACHINE.menu();
     // The grinding racket the crusher makes while its rollers spin
     public static final RegistryObject<SoundEvent> CRUSHER_LOOP = SOUNDS.register("crusher_loop",
         () -> SoundEvent.createVariableRangeEvent(Identifier.fromNamespaceAndPath(MODID, "crusher_loop")));
 
-    // The electric furnace: vanilla smelting on Erg power — 2x speed, 5x the
+    // The electric furnace: vanilla smelting on Erg power — 2x speed, 2x the
     // smelts per coal once the coal has been through a generator
-    public static final RegistryObject<Block> ELECTRIC_FURNACE = BLOCKS.register("electric_furnace",
-        () -> new ElectricFurnaceBlock(BlockBehaviour.Properties.of()
-            .setId(BLOCKS.key("electric_furnace"))
-            .mapColor(MapColor.METAL)
-            .sound(SoundType.METAL)
-            .strength(5.0F, 6.0F)
-            .requiresCorrectToolForDrops()
-            .lightLevel(state -> state.getValue(ElectricFurnaceBlock.LIT) ? 10 : 0)
-        )
-    );
-    public static final RegistryObject<Item> ELECTRIC_FURNACE_ITEM = ITEMS.register("electric_furnace",
-        () -> new BlockItem(ELECTRIC_FURNACE.get(), new Item.Properties().setId(ITEMS.key("electric_furnace")).useBlockDescriptionPrefix())
-    );
-    public static final RegistryObject<BlockEntityType<ElectricFurnaceBlockEntity>> ELECTRIC_FURNACE_BLOCK_ENTITY =
-        BLOCK_ENTITIES.register("electric_furnace",
-            () -> new BlockEntityType<>(ElectricFurnaceBlockEntity::new, java.util.Set.of(ELECTRIC_FURNACE.get())));
-    public static final RegistryObject<MenuType<ElectricFurnaceMenu>> ELECTRIC_FURNACE_MENU =
-        MENUS.register("electric_furnace",
-            () -> IForgeMenuType.create(ElectricFurnaceMenu::new));
+    public static final Machine<ElectricFurnaceBlockEntity, ElectricFurnaceMenu> ELECTRIC_FURNACE_MACHINE =
+        registerMachine("electric_furnace", ElectricFurnaceBlock::new,
+            p -> p.lightLevel(state -> state.getValue(ElectricFurnaceBlock.LIT) ? 10 : 0),
+            ElectricFurnaceBlockEntity::new, ElectricFurnaceMenu::new);
+    public static final RegistryObject<Block> ELECTRIC_FURNACE = ELECTRIC_FURNACE_MACHINE.block();
+    public static final RegistryObject<Item> ELECTRIC_FURNACE_ITEM = ELECTRIC_FURNACE_MACHINE.item();
+    public static final RegistryObject<BlockEntityType<ElectricFurnaceBlockEntity>> ELECTRIC_FURNACE_BLOCK_ENTITY = ELECTRIC_FURNACE_MACHINE.blockEntity();
+    public static final RegistryObject<MenuType<ElectricFurnaceMenu>> ELECTRIC_FURNACE_MENU = ELECTRIC_FURNACE_MACHINE.menu();
 
     // The Erg cable: moves energy between machines, connecting on all six sides
     public static final RegistryObject<Block> ERG_CABLE = BLOCKS.register("erg_cable",
@@ -266,25 +258,14 @@ public final class Automati {
     // The Erg Jar: Automati's battery — 320,000 E (five lumps of coal), 80 E/t
     // in and out. Iron electrode accepts, copper terminal opposite discharges;
     // the wrench moves the terminal. Charge pips glow brighter as it fills.
-    public static final RegistryObject<Block> ERG_JAR = BLOCKS.register("erg_jar",
-        () -> new ErgJarBlock(BlockBehaviour.Properties.of()
-            .setId(BLOCKS.key("erg_jar"))
-            .mapColor(MapColor.METAL)
-            .sound(SoundType.METAL)
-            .strength(5.0F, 6.0F)
-            .requiresCorrectToolForDrops()
-            .lightLevel(state -> state.getValue(ErgJarBlock.CHARGE) * 2)
-        )
-    );
-    public static final RegistryObject<Item> ERG_JAR_ITEM = ITEMS.register("erg_jar",
-        () -> new BlockItem(ERG_JAR.get(), new Item.Properties().setId(ITEMS.key("erg_jar")).useBlockDescriptionPrefix())
-    );
-    public static final RegistryObject<BlockEntityType<ErgJarBlockEntity>> ERG_JAR_BLOCK_ENTITY =
-        BLOCK_ENTITIES.register("erg_jar",
-            () -> new BlockEntityType<>(ErgJarBlockEntity::new, java.util.Set.of(ERG_JAR.get())));
-    public static final RegistryObject<MenuType<ErgJarMenu>> ERG_JAR_MENU =
-        MENUS.register("erg_jar",
-            () -> IForgeMenuType.create(ErgJarMenu::new));
+    public static final Machine<ErgJarBlockEntity, ErgJarMenu> ERG_JAR_MACHINE =
+        registerMachine("erg_jar", ErgJarBlock::new,
+            p -> p.lightLevel(state -> state.getValue(ErgJarBlock.CHARGE) * 2),
+            ErgJarBlockEntity::new, ErgJarMenu::new);
+    public static final RegistryObject<Block> ERG_JAR = ERG_JAR_MACHINE.block();
+    public static final RegistryObject<Item> ERG_JAR_ITEM = ERG_JAR_MACHINE.item();
+    public static final RegistryObject<BlockEntityType<ErgJarBlockEntity>> ERG_JAR_BLOCK_ENTITY = ERG_JAR_MACHINE.blockEntity();
+    public static final RegistryObject<MenuType<ErgJarMenu>> ERG_JAR_MENU = ERG_JAR_MACHINE.menu();
 
     // The item duct: six-direction item transport — hoppers extract, ducts move
     public static final RegistryObject<Block> ITEM_DUCT = BLOCKS.register("item_duct",
@@ -333,6 +314,9 @@ public final class Automati {
 
         // Register the commonSetup method for modloading
         FMLCommonSetupEvent.getBus(modBusGroup).addListener(this::commonSetup);
+
+        // Data generation (./gradlew runData) — see AutomatiDatagen
+        net.minecraftforge.data.event.GatherDataEvent.getBus(modBusGroup).addListener(AutomatiDatagen::gatherData);
 
         // Register the Deferred Register to the mod event bus so blocks get registered
         BLOCKS.register(modBusGroup);

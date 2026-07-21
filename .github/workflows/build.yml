@@ -1,0 +1,50 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+
+      - name: Set up Gradle (with caching)
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Make gradlew executable
+        run: chmod +x gradlew
+
+      - name: Build
+        run: ./gradlew build
+
+      - name: Run data generation
+        run: ./gradlew runData
+
+      # If a provider changed but runData wasn't re-run before committing,
+      # the regenerated files will differ from what's checked in — fail loudly
+      # instead of shipping stale JSON.
+      - name: Verify generated resources are up to date
+        run: |
+          if [ -n "$(git status --porcelain src/generated/resources)" ]; then
+            echo "::error::src/generated/resources is stale — run ./gradlew runData and commit the result"
+            git status --porcelain src/generated/resources
+            git diff src/generated/resources
+            exit 1
+          fi
+
+      - name: Upload mod jar
+        uses: actions/upload-artifact@v4
+        with:
+          name: automati-jar
+          path: build/libs/*.jar
