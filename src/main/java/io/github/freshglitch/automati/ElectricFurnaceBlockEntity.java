@@ -27,9 +27,10 @@ import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.ItemStackHandler;
 import org.jetbrains.annotations.Nullable;
 
-// The electric furnace: smelts everything a vanilla furnace can, using Ergs
-// instead of fuel — twice the speed, twice the smelts per coal. Reads the
-// vanilla SMELTING recipe library directly, experience included.
+// The electric furnace: smelts (or, in blast mode, blasts) everything the
+// matching vanilla furnace can, using Ergs instead of fuel — twice the speed,
+// twice the smelts per coal. The mode button in the GUI switches which vanilla
+// recipe library it reads; speed and energy cost are identical in both modes.
 public class ElectricFurnaceBlockEntity extends AbstractErgBlockEntity implements MenuProvider {
     public static final int CAPACITY = 20_000;      // Erg buffer size
     public static final int MAX_RECEIVE = 200;      // max Ergs accepted per tick
@@ -39,21 +40,47 @@ public class ElectricFurnaceBlockEntity extends AbstractErgBlockEntity implement
     public static final int INPUT_SLOT = 0;
     public static final int OUTPUT_SLOT = 1;
 
-    private RecipeHolder<SmeltingRecipe> lastRecipe;
+    private RecipeHolder<SmeltingRecipe> lastSmelting;
+    private RecipeHolder<net.minecraft.world.item.crafting.BlastingRecipe> lastBlasting;
+    private float lastExperience;
+    private boolean blastMode;
     private float bankedExperience;
     private int progress;
 
-    // What does this item smelt into? Answered by vanilla's own recipe library.
+    // What does this item cook into? Answered by whichever vanilla recipe
+    // library the current mode points at.
     private ItemStack resultFor(Level level, ItemStack stack) {
         if (stack.isEmpty() || !(level instanceof ServerLevel serverLevel))
             return ItemStack.EMPTY;
         SingleRecipeInput input = new SingleRecipeInput(stack);
-        var found = serverLevel.recipeAccess().getRecipeFor(RecipeType.SMELTING, input, level, lastRecipe);
-        if (found.isPresent()) {
-            lastRecipe = found.get();
-            return found.get().value().assemble(input);
+        if (blastMode) {
+            var found = serverLevel.recipeAccess().getRecipeFor(RecipeType.BLASTING, input, level, lastBlasting);
+            if (found.isPresent()) {
+                lastBlasting = found.get();
+                lastExperience = found.get().value().experience();
+                return found.get().value().assemble(input);
+            }
+        } else {
+            var found = serverLevel.recipeAccess().getRecipeFor(RecipeType.SMELTING, input, level, lastSmelting);
+            if (found.isPresent()) {
+                lastSmelting = found.get();
+                lastExperience = found.get().value().experience();
+                return found.get().value().assemble(input);
+            }
         }
         return ItemStack.EMPTY;
+    }
+
+    public boolean isBlastMode() {
+        return blastMode;
+    }
+
+    // Called from the menu when the player presses the mode button. Progress
+    // resets: a half-smelted item doesn't carry over into a different process.
+    public void toggleBlastMode() {
+        blastMode = !blastMode;
+        progress = 0;
+        setChanged();
     }
 
     private final ItemStackHandler inventory = new ItemStackHandler(2) {
@@ -115,6 +142,7 @@ public class ElectricFurnaceBlockEntity extends AbstractErgBlockEntity implement
                 case 1 -> SMELT_TICKS;
                 case 2 -> energy.getEnergyStored() & 0xFFFF;
                 case 3 -> (energy.getEnergyStored() >> 16) & 0xFFFF;
+                case 4 -> blastMode ? 1 : 0;
                 default -> 0;
             };
         }
@@ -127,7 +155,7 @@ public class ElectricFurnaceBlockEntity extends AbstractErgBlockEntity implement
 
         @Override
         public int getCount() {
-            return 4;
+            return 5;
         }
     };
 
@@ -153,7 +181,7 @@ public class ElectricFurnaceBlockEntity extends AbstractErgBlockEntity implement
             if (progress >= SMELT_TICKS) {
                 input.shrink(1);
                 depositOutput(result);
-                bankedExperience += lastRecipe.value().experience();
+                bankedExperience += lastExperience;
                 progress = 0;
             }
             setChanged();
@@ -240,6 +268,7 @@ public class ElectricFurnaceBlockEntity extends AbstractErgBlockEntity implement
         output.store("Output", ItemStack.OPTIONAL_CODEC, inventory.getStackInSlot(OUTPUT_SLOT));
         output.putInt("Progress", progress);
         output.putFloat("BankedXp", bankedExperience);
+        output.putBoolean("BlastMode", blastMode);
     }
 
     @Override
@@ -249,5 +278,6 @@ public class ElectricFurnaceBlockEntity extends AbstractErgBlockEntity implement
         input.read("Output", ItemStack.OPTIONAL_CODEC).ifPresent(stack -> inventory.setStackInSlot(OUTPUT_SLOT, stack));
         progress = input.getIntOr("Progress", 0);
         bankedExperience = input.getFloatOr("BankedXp", 0.0F);
+        blastMode = input.getBooleanOr("BlastMode", false);
     }
 }

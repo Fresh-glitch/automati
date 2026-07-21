@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "building",
+  "key": {
+    "D": "minecraft:dirt",
+    "S": "automati:scf",
+    "W": "minecraft:water_bucket"
+  },
+  "pattern": [
+    "DSD",
+    "SWS",
+    "DSD"
+  ],
+  "result": {
+    "count": 4,
+    "id": "automati:ash_rich_soil"
+  }
+}

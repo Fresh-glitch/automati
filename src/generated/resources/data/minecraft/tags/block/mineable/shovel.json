@@ -1,5 +1,7 @@
 {
   "values": [
-    "automati:ash_block"
+    "automati:ash_block",
+    "automati:road_base",
+    "automati:ash_rich_soil"
   ]
 }

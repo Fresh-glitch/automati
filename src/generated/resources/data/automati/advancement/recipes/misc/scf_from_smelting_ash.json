@@ -1,0 +1,32 @@
+{
+  "parent": "minecraft:recipes/root",
+  "criteria": {
+    "has_ash": {
+      "conditions": {
+        "items": [
+          {
+            "items": "automati:ash"
+          }
+        ]
+      },
+      "trigger": "minecraft:inventory_changed"
+    },
+    "has_the_recipe": {
+      "conditions": {
+        "recipe": "automati:scf_from_smelting_ash"
+      },
+      "trigger": "minecraft:recipe_unlocked"
+    }
+  },
+  "requirements": [
+    [
+      "has_the_recipe",
+      "has_ash"
+    ]
+  ],
+  "rewards": {
+    "recipes": [
+      "automati:scf_from_smelting_ash"
+    ]
+  }
+}

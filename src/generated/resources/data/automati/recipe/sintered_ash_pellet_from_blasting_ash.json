@@ -1,0 +1,8 @@
+{
+  "type": "minecraft:blasting",
+  "experience": 0.1,
+  "ingredient": "automati:ash",
+  "result": {
+    "id": "automati:sintered_ash_pellet"
+  }
+}
