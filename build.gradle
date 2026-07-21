@@ -9,7 +9,7 @@ plugins {
     id 'net.minecraftforge.gradle' version '[7.0.17,8)'
 }
 
-version = '1.10.0'
+version = '1.11.0'
 group = 'io.github.freshglitch.automati'
 
 // Mojang ships Java 25 to end users in 26.1+, so your mod should target Java 25.
@@ -54,7 +54,9 @@ tasks.matching { it.name == 'runData' }.configureEach {
         // execution time under the configuration cache
         new File(genRoot, 'assets/minecraft').deleteDir()
         new File(genRoot, '.cache').deleteDir()
-        def keep = ['erg_jar.json', 'ash_block.json'] as Set
+        def keep = ['erg_jar.json', 'ash_block.json', 'ash_bricks.json', 'road_base.json',
+                    'scf.json', 'washed_ash.json', 'industrial_fertilizer.json',
+                    'ash_clay_blend.json', 'ash_brick.json', 'sintered_ash_pellet.json'] as Set
         new File(genRoot, 'assets/automati/items').listFiles()?.each { f ->
             if (!keep.contains(f.name)) f.delete()
         }

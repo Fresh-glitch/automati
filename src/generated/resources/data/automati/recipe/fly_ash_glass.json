@@ -1,0 +1,14 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "building",
+  "key": {
+    "P": "automati:sintered_ash_pellet"
+  },
+  "pattern": [
+    "PP",
+    "PP"
+  ],
+  "result": {
+    "id": "automati:fly_ash_glass"
+  }
+}

@@ -31,6 +31,7 @@ $textureScripts = @(
     'make_bucking_iron_texture.ps1',
     'make_wrench_atlas.ps1',
     'make_ergjar_textures.ps1',
+    'make_ash_update_textures.ps1',
     'make_logo_v2.ps1'
 )
 $soundScripts = @(

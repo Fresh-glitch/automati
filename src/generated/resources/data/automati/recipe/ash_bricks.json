@@ -1,0 +1,14 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "building",
+  "key": {
+    "B": "automati:ash_brick"
+  },
+  "pattern": [
+    "BB",
+    "BB"
+  ],
+  "result": {
+    "id": "automati:ash_bricks"
+  }
+}

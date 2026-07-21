@@ -1,0 +1,32 @@
+{
+  "parent": "minecraft:recipes/root",
+  "criteria": {
+    "has_ash_clay_blend": {
+      "conditions": {
+        "items": [
+          {
+            "items": "automati:ash_clay_blend"
+          }
+        ]
+      },
+      "trigger": "minecraft:inventory_changed"
+    },
+    "has_the_recipe": {
+      "conditions": {
+        "recipe": "automati:ash_brick_from_smelting_blend"
+      },
+      "trigger": "minecraft:recipe_unlocked"
+    }
+  },
+  "requirements": [
+    [
+      "has_the_recipe",
+      "has_ash_clay_blend"
+    ]
+  ],
+  "rewards": {
+    "recipes": [
+      "automati:ash_brick_from_smelting_blend"
+    ]
+  }
+}
