@@ -59,6 +59,19 @@ All Java code lives in one flat package: `src/main/java/io/github/freshglitch/au
 - **Resources**: client-side under `assets/automati/` (models, blockstates,
   textures, lang, sounds), server/data under `data/automati/` (recipes, loot
   tables, damage types) plus vanilla tag overrides under `data/minecraft/tags/`.
+- **Datagen owns the mechanical JSONs** (`AutomatiDatagen.java`; `./gradlew
+  runData` writes `src/generated/resources`, which is committed): block loot
+  tables, vanilla block-tag appends, every vanilla-type recipe (shaped/
+  shapeless/cooking — with free recipe-book unlock advancements), and the
+  blockstates/models/item-definitions of datagen-era blocks (Erg Jar is the
+  multi-state reference, Ash Block the trivial-cube one). NEVER hand-edit
+  generated files — the next runData overwrites them. Deliberately
+  hand-authored: crushing recipe JSONs (adding one must stay JSON-only, no
+  Java), the pre-datagen machine blockstates/models, conduit multiparts, the
+  3D wrench model, `lang/`, and all textures (tools/ scripts). Note:
+  vanilla's ModelProvider backfills item definitions registry-wide; a doLast
+  prune on runData in build.gradle deletes that overreach — keep its
+  keep-list in sync when generating new blocks.
 - **3D item models** (reference: the Engineer's Wrench): `.bbmodel` sources
   live in `tools/blockbench/`; export as Java Block/Item JSON into
   `assets/automati/models/item/` (the `assets/automati/items/` definition

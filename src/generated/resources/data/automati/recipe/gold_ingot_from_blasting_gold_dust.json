@@ -1,0 +1,9 @@
+{
+  "type": "minecraft:blasting",
+  "experience": 0.7,
+  "group": "gold_ingot",
+  "ingredient": "automati:gold_dust",
+  "result": {
+    "id": "minecraft:gold_ingot"
+  }
+}
