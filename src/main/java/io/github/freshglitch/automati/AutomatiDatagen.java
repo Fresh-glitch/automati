@@ -63,12 +63,18 @@ public final class AutomatiDatagen {
 
         @Override
         protected java.util.stream.Stream<Block> getKnownBlocks() {
-            return java.util.stream.Stream.of(Automati.ERG_JAR.get(), Automati.ASH_BLOCK.get());
+            // fly_ash_glass and ash_rich_soil are hand-authored (they need
+            // render_type / the farmland template) and deliberately absent
+            return java.util.stream.Stream.of(Automati.ERG_JAR.get(), Automati.ASH_BLOCK.get(),
+                Automati.ASH_BRICKS.get(), Automati.ROAD_BASE.get());
         }
 
         @Override
         protected java.util.stream.Stream<net.minecraft.world.item.Item> getKnownItems() {
-            return java.util.stream.Stream.of(Automati.ERG_JAR_ITEM.get(), Automati.ASH_BLOCK_ITEM.get());
+            return java.util.stream.Stream.of(Automati.ERG_JAR_ITEM.get(), Automati.ASH_BLOCK_ITEM.get(),
+                Automati.ASH_BRICKS_ITEM.get(), Automati.ROAD_BASE_ITEM.get(),
+                Automati.SCF.get(), Automati.WASHED_ASH.get(), Automati.INDUSTRIAL_FERTILIZER.get(),
+                Automati.ASH_CLAY_BLEND.get(), Automati.ASH_BRICK.get(), Automati.SINTERED_ASH_PELLET.get());
         }
 
         @Override
@@ -78,15 +84,28 @@ public final class AutomatiDatagen {
         }
 
         // Vanilla's ItemModelGenerators would emit definitions for every
-        // vanilla item; a mod wants none of that. (The collector still
-        // backfills block-item definitions registry-wide — build.gradle's
-        // runData prune deletes that overreach after generation.)
+        // vanilla item; override run() to generate ONLY Automati's flat item
+        // sprites. (The collector still backfills block-item definitions
+        // registry-wide — build.gradle's runData prune deletes that overreach
+        // after generation.)
         @Override
         protected net.minecraft.client.data.models.ItemModelGenerators getItemModelGenerators(
                 ItemInfoCollector items, SimpleModelCollector models) {
             return new net.minecraft.client.data.models.ItemModelGenerators(items, models) {
                 @Override
                 public void run() {
+                    generateFlatItem(Automati.SCF.get(),
+                        net.minecraft.client.data.models.model.ModelTemplates.FLAT_ITEM);
+                    generateFlatItem(Automati.WASHED_ASH.get(),
+                        net.minecraft.client.data.models.model.ModelTemplates.FLAT_ITEM);
+                    generateFlatItem(Automati.INDUSTRIAL_FERTILIZER.get(),
+                        net.minecraft.client.data.models.model.ModelTemplates.FLAT_ITEM);
+                    generateFlatItem(Automati.ASH_CLAY_BLEND.get(),
+                        net.minecraft.client.data.models.model.ModelTemplates.FLAT_ITEM);
+                    generateFlatItem(Automati.ASH_BRICK.get(),
+                        net.minecraft.client.data.models.model.ModelTemplates.FLAT_ITEM);
+                    generateFlatItem(Automati.SINTERED_ASH_PELLET.get(),
+                        net.minecraft.client.data.models.model.ModelTemplates.FLAT_ITEM);
                 }
             };
         }
@@ -99,12 +118,16 @@ public final class AutomatiDatagen {
             @Override
             public void run() {
                 createTrivialCube(Automati.ASH_BLOCK.get());
-                // explicit item definition — the framework's block-item
+                createTrivialCube(Automati.ASH_BRICKS.get());
+                createTrivialCube(Automati.ROAD_BASE.get());
+                // explicit item definitions — the framework's block-item
                 // backfill is unreliable when vanilla's generators are muted
-                itemModelOutput.accept(Automati.ASH_BLOCK_ITEM.get(),
-                    net.minecraft.client.data.models.model.ItemModelUtils.plainModel(
-                        net.minecraft.client.data.models.model.ModelLocationUtils.getModelLocation(
-                            Automati.ASH_BLOCK.get())));
+                for (var blockWithItem : List.of(Automati.ASH_BLOCK, Automati.ASH_BRICKS, Automati.ROAD_BASE)) {
+                    itemModelOutput.accept(blockWithItem.get().asItem(),
+                        net.minecraft.client.data.models.model.ItemModelUtils.plainModel(
+                            net.minecraft.client.data.models.model.ModelLocationUtils.getModelLocation(
+                                blockWithItem.get())));
+                }
 
                 // Erg Jar: one model per charge level (terminal up), rotated
                 // per FACING barrel-style — the pip bar fills toward the
@@ -172,7 +195,11 @@ public final class AutomatiDatagen {
                 Automati.ERG_CABLE.get(),
                 Automati.ITEM_DUCT.get(),
                 Automati.ERG_JAR.get(),
-                Automati.ASH_BLOCK.get());
+                Automati.ASH_BLOCK.get(),
+                Automati.ASH_BRICKS.get(),
+                Automati.ROAD_BASE.get(),
+                Automati.FLY_ASH_GLASS.get(),
+                Automati.ASH_RICH_SOIL.get());
         }
     }
 
@@ -187,11 +214,18 @@ public final class AutomatiDatagen {
             tag(BlockTags.MINEABLE_WITH_PICKAXE).addAll(List.of(
                 key(Automati.FACTORY_BLOCK), key(Automati.COAL_GENERATOR), key(Automati.LOAD_BANK),
                 key(Automati.CRUSHER), key(Automati.ERG_CABLE), key(Automati.ELECTRIC_FURNACE),
-                key(Automati.ITEM_DUCT), key(Automati.ERG_JAR)));
-            tag(BlockTags.MINEABLE_WITH_SHOVEL).add(key(Automati.ASH_BLOCK));
+                key(Automati.ITEM_DUCT), key(Automati.ERG_JAR),
+                key(Automati.ASH_BRICKS), key(Automati.FLY_ASH_GLASS)));
+            tag(BlockTags.MINEABLE_WITH_SHOVEL).addAll(List.of(
+                key(Automati.ASH_BLOCK), key(Automati.ROAD_BASE), key(Automati.ASH_RICH_SOIL)));
             tag(BlockTags.NEEDS_STONE_TOOL).addAll(List.of(
                 key(Automati.FACTORY_BLOCK), key(Automati.COAL_GENERATOR), key(Automati.LOAD_BANK),
                 key(Automati.CRUSHER), key(Automati.ELECTRIC_FURNACE), key(Automati.ERG_JAR)));
+            // the whole point of fly-ash glass: the wither can't chew through it
+            tag(BlockTags.WITHER_IMMUNE).add(key(Automati.FLY_ASH_GLASS));
+            // dense industrial ceramics: nothing below diamond bites into them
+            tag(BlockTags.NEEDS_DIAMOND_TOOL).addAll(List.of(
+                key(Automati.ASH_BRICKS), key(Automati.FLY_ASH_GLASS)));
         }
 
         private static ResourceKey<Block> key(RegistryObject<Block> block) {
@@ -310,6 +344,68 @@ public final class AutomatiDatagen {
             dustCooking(Automati.IRON_DUST.get(), Items.IRON_INGOT, "iron_ingot", "iron_dust");
             dustCooking(Automati.COPPER_DUST.get(), Items.COPPER_INGOT, "copper_ingot", "copper_dust");
             dustCooking(Automati.GOLD_DUST.get(), Items.GOLD_INGOT, "gold_ingot", "gold_dust");
+
+            // -- the ash reuse chain --
+            // gentle heat (any furnace, incl. our electric one) -> SCF
+            SimpleCookingRecipeBuilder.smelting(Ingredient.of(Automati.ASH.get()), RecipeCategory.MISC,
+                    CookingBookCategory.MISC, Automati.SCF.get(), 0.1F, 200)
+                .unlockedBy("has_ash", has(Automati.ASH.get()))
+                .save(output, ResourceKey.create(Registries.RECIPE,
+                    Identifier.fromNamespaceAndPath(Automati.MODID, "scf_from_smelting_ash")));
+            // sintering heat (blast furnace only) -> pellets
+            SimpleCookingRecipeBuilder.blasting(Ingredient.of(Automati.ASH.get()), RecipeCategory.MISC,
+                    CookingBookCategory.MISC, Automati.SINTERED_ASH_PELLET.get(), 0.1F, 100)
+                .unlockedBy("has_ash", has(Automati.ASH.get()))
+                .save(output, ResourceKey.create(Registries.RECIPE,
+                    Identifier.fromNamespaceAndPath(Automati.MODID, "sintered_ash_pellet_from_blasting_ash")));
+            // ash extends clay: 1 + 1 -> 2 blend, fired like vanilla brick
+            shapeless(RecipeCategory.MISC, Automati.ASH_CLAY_BLEND.get(), 2)
+                .requires(Automati.ASH.get()).requires(Items.CLAY_BALL)
+                .unlockedBy("has_ash", has(Automati.ASH.get()))
+                .save(output);
+            SimpleCookingRecipeBuilder.smelting(Ingredient.of(Automati.ASH_CLAY_BLEND.get()), RecipeCategory.MISC,
+                    CookingBookCategory.MISC, Automati.ASH_BRICK.get(), 0.3F, 200)
+                .unlockedBy("has_ash_clay_blend", has(Automati.ASH_CLAY_BLEND.get()))
+                .save(output, ResourceKey.create(Registries.RECIPE,
+                    Identifier.fromNamespaceAndPath(Automati.MODID, "ash_brick_from_smelting_blend")));
+            shaped(RecipeCategory.BUILDING_BLOCKS, Automati.ASH_BRICKS_ITEM.get())
+                .pattern("BB").pattern("BB")
+                .define('B', Automati.ASH_BRICK.get())
+                .unlockedBy("has_ash_brick", has(Automati.ASH_BRICK.get()))
+                .save(output);
+            // stabilized road base: ash binds the gravel (and gravity loses)
+            shapeless(RecipeCategory.BUILDING_BLOCKS, Automati.ROAD_BASE_ITEM.get())
+                .requires(Automati.ASH.get()).requires(Items.GRAVEL)
+                .unlockedBy("has_ash", has(Automati.ASH.get()))
+                .save(output);
+            // water leaching strips the toxic traces; the bucket comes back
+            shapeless(RecipeCategory.MISC, Automati.WASHED_ASH.get(), 4)
+                .requires(Automati.ASH.get(), 4).requires(Items.WATER_BUCKET)
+                .unlockedBy("has_ash", has(Automati.ASH.get()))
+                .save(output);
+            // washed ash + biomass -> bulk fertilizer (a reskinned bone meal)
+            shapeless(RecipeCategory.MISC, Automati.INDUSTRIAL_FERTILIZER.get(), 4)
+                .requires(Automati.WASHED_ASH.get()).requires(Items.ROTTEN_FLESH)
+                .unlockedBy("has_washed_ash", has(Automati.WASHED_ASH.get()))
+                .save(output, ResourceKey.create(Registries.RECIPE,
+                    Identifier.fromNamespaceAndPath(Automati.MODID, "industrial_fertilizer_from_rotten_flesh")));
+            shapeless(RecipeCategory.MISC, Automati.INDUSTRIAL_FERTILIZER.get(), 6)
+                .requires(Automati.WASHED_ASH.get()).requires(Items.BONE_MEAL)
+                .unlockedBy("has_washed_ash", has(Automati.WASHED_ASH.get()))
+                .save(output, ResourceKey.create(Registries.RECIPE,
+                    Identifier.fromNamespaceAndPath(Automati.MODID, "industrial_fertilizer_from_bone_meal")));
+            // vitrified sintered ash: the see-through bunker block
+            shaped(RecipeCategory.BUILDING_BLOCKS, Automati.FLY_ASH_GLASS_ITEM.get())
+                .pattern("PP").pattern("PP")
+                .define('P', Automati.SINTERED_ASH_PELLET.get())
+                .unlockedBy("has_sintered_ash_pellet", has(Automati.SINTERED_ASH_PELLET.get()))
+                .save(output);
+            // SCF-conditioned farmland; the water bucket is a returned catalyst
+            shaped(RecipeCategory.BUILDING_BLOCKS, Automati.ASH_RICH_SOIL_ITEM.get(), 4)
+                .pattern("DSD").pattern("SWS").pattern("DSD")
+                .define('D', Items.DIRT).define('S', Automati.SCF.get()).define('W', Items.WATER_BUCKET)
+                .unlockedBy("has_scf", has(Automati.SCF.get()))
+                .save(output);
         }
 
         private void dustCooking(ItemLike dust, ItemLike ingot, String group, String dustName) {

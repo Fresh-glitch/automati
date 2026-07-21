@@ -106,6 +106,9 @@ Draw-Slot 151 17 18 52 (C 43 43 43)
 for ($seg = 1; $seg -lt 10; $seg++) {
   $g.FillRectangle((New-Object System.Drawing.SolidBrush (C 66 66 66)), 152, (18 + $seg*5), 16, 1)
 }
+# mode-toggle socket top-left: the screen renders a furnace/blast furnace
+# item icon inside it (interior 16x16 at 7,15)
+Draw-Slot 6 14 18 18 $slotBody
 $g.Dispose()
 
 function Draw-Arrow($ox, $oy, $shaft, $head) {

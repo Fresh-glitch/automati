@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [
+    "automati:washed_ash",
+    "minecraft:rotten_flesh"
+  ],
+  "result": {
+    "count": 4,
+    "id": "automati:industrial_fertilizer"
+  }
+}

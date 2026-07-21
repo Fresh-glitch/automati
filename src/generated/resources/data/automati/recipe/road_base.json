@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "building",
+  "ingredients": [
+    "automati:ash",
+    "minecraft:gravel"
+  ],
+  "result": {
+    "id": "automati:road_base"
+  }
+}

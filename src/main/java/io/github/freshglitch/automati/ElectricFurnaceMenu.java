@@ -16,6 +16,7 @@ public class ElectricFurnaceMenu extends AbstractErgMenu {
     public static final int INPUT_SLOT_Y = 35;
     public static final int OUTPUT_SLOT_X = 116;
     public static final int OUTPUT_SLOT_Y = 35;
+    public static final int BUTTON_TOGGLE_MODE = 0;
 
     private final ElectricFurnaceBlockEntity furnace;
 
@@ -23,7 +24,7 @@ public class ElectricFurnaceMenu extends AbstractErgMenu {
     public ElectricFurnaceMenu(int containerId, Inventory playerInventory, FriendlyByteBuf buf) {
         this(containerId, playerInventory,
             (ElectricFurnaceBlockEntity) playerInventory.player.level().getBlockEntity(buf.readBlockPos()),
-            new SimpleContainerData(4));
+            new SimpleContainerData(5));
     }
 
     // Server-side constructor
@@ -51,6 +52,20 @@ public class ElectricFurnaceMenu extends AbstractErgMenu {
 
     public boolean isSmelting() {
         return data.get(0) > 0;
+    }
+
+    public boolean isBlastMode() {
+        return data.get(4) != 0;
+    }
+
+    // The mode button lands here, on the server
+    @Override
+    public boolean clickMenuButton(Player player, int id) {
+        if (id == BUTTON_TOGGLE_MODE) {
+            furnace.toggleBlastMode();
+            return true;
+        }
+        return false;
     }
 
     // 0..1 fraction of the current smelt completed

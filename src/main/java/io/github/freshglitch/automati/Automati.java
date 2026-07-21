@@ -255,6 +255,122 @@ public final class Automati {
         () -> new BlockItem(ASH_BLOCK.get(), new Item.Properties().setId(ITEMS.key("ash_block")).useBlockDescriptionPrefix())
     );
 
+    // ---- The ash reuse chain: Automati's waste product becomes a resource tree ----
+    // Furnace = gentle thermal treatment (SCF), blast furnace = sintering
+    // (pellets); the same ash takes different roads at different temperatures.
+    public static final RegistryObject<Item> SCF = ITEMS.register("scf",
+        () -> new Item(new Item.Properties().setId(ITEMS.key("scf")))
+    );
+    // Washed ash: water leaching strips the toxic coal traces (real fly-ash
+    // remediation) — the safe feedstock for anything that touches food
+    public static final RegistryObject<Item> WASHED_ASH = ITEMS.register("washed_ash",
+        () -> new Item(new Item.Properties().setId(ITEMS.key("washed_ash")))
+    );
+    // Industrial fertilizer: washed ash + biomass, behaves exactly like bone
+    // meal (it IS a BoneMealItem) but mass-produced from the ash bin
+    public static final RegistryObject<Item> INDUSTRIAL_FERTILIZER = ITEMS.register("industrial_fertilizer",
+        () -> new net.minecraft.world.item.BoneMealItem(new Item.Properties().setId(ITEMS.key("industrial_fertilizer")))
+    );
+    public static final RegistryObject<Item> ASH_CLAY_BLEND = ITEMS.register("ash_clay_blend",
+        () -> new Item(new Item.Properties().setId(ITEMS.key("ash_clay_blend")))
+    );
+    public static final RegistryObject<Item> ASH_BRICK = ITEMS.register("ash_brick",
+        () -> new Item(new Item.Properties().setId(ITEMS.key("ash_brick")))
+    );
+    public static final RegistryObject<Item> SINTERED_ASH_PELLET = ITEMS.register("sintered_ash_pellet",
+        () -> new Item(new Item.Properties().setId(ITEMS.key("sintered_ash_pellet")))
+    );
+
+    // Ash bricks: fired ash-clay masonry — denser than clay brick (real fly-ash
+    // bricks beat clay on compressive strength). Resistance 90 shrugs off
+    // creepers and TNT; only the wither-grade threats need the glass.
+    public static final RegistryObject<Block> ASH_BRICKS = BLOCKS.register("ash_bricks",
+        () -> new Block(BlockBehaviour.Properties.of()
+            .setId(BLOCKS.key("ash_bricks"))
+            .mapColor(MapColor.COLOR_GRAY)
+            .sound(SoundType.STONE)
+            .strength(2.0F, 90.0F)
+            .requiresCorrectToolForDrops()
+        )
+    );
+    public static final RegistryObject<Item> ASH_BRICKS_ITEM = ITEMS.register("ash_bricks",
+        () -> new BlockItem(ASH_BRICKS.get(), new Item.Properties().setId(ITEMS.key("ash_bricks")).useBlockDescriptionPrefix()) {
+            @Override
+            public void appendHoverText(net.minecraft.world.item.ItemStack stack, TooltipContext context,
+                                        net.minecraft.world.item.component.TooltipDisplay display,
+                                        java.util.function.Consumer<net.minecraft.network.chat.Component> tooltip,
+                                        net.minecraft.world.item.TooltipFlag flag) {
+                tooltip.accept(net.minecraft.network.chat.Component
+                    .translatable("tooltip.automati.ash_bricks.blast")
+                    .withStyle(net.minecraft.ChatFormatting.GRAY));
+            }
+        }
+    );
+
+    // Road base: ash-stabilized gravel. Stabilized = it does NOT fall, and
+    // the compacted surface walks ~15% faster — build roads that feel like roads
+    public static final RegistryObject<Block> ROAD_BASE = BLOCKS.register("road_base",
+        () -> new Block(BlockBehaviour.Properties.of()
+            .setId(BLOCKS.key("road_base"))
+            .mapColor(MapColor.COLOR_GRAY)
+            .sound(SoundType.GRAVEL)
+            .strength(0.6F)
+            .speedFactor(1.15F)
+        )
+    );
+    public static final RegistryObject<Item> ROAD_BASE_ITEM = ITEMS.register("road_base",
+        () -> new BlockItem(ROAD_BASE.get(), new Item.Properties().setId(ITEMS.key("road_base")).useBlockDescriptionPrefix())
+    );
+
+    // Fly-ash glass: vitrified sintered ash. Obsidian-tier blast resistance
+    // (creepers, TNT, wither spawn blasts) AND wither_immune-tagged so the
+    // wither can't eat it — see-through bunker material, as ordered
+    public static final RegistryObject<Block> FLY_ASH_GLASS = BLOCKS.register("fly_ash_glass",
+        () -> new net.minecraft.world.level.block.TransparentBlock(BlockBehaviour.Properties.of()
+            .setId(BLOCKS.key("fly_ash_glass"))
+            .mapColor(MapColor.COLOR_BLACK)
+            .sound(SoundType.GLASS)
+            .strength(3.0F, 1200.0F)
+            .requiresCorrectToolForDrops()
+            .noOcclusion()
+            .isValidSpawn((state, level, pos, type) -> false)
+            .isRedstoneConductor((state, level, pos) -> false)
+            .isSuffocating((state, level, pos) -> false)
+            .isViewBlocking((state, level, pos) -> false)
+        )
+    );
+    public static final RegistryObject<Item> FLY_ASH_GLASS_ITEM = ITEMS.register("fly_ash_glass",
+        () -> new BlockItem(FLY_ASH_GLASS.get(), new Item.Properties().setId(ITEMS.key("fly_ash_glass")).useBlockDescriptionPrefix()) {
+            @Override
+            public void appendHoverText(net.minecraft.world.item.ItemStack stack, TooltipContext context,
+                                        net.minecraft.world.item.component.TooltipDisplay display,
+                                        java.util.function.Consumer<net.minecraft.network.chat.Component> tooltip,
+                                        net.minecraft.world.item.TooltipFlag flag) {
+                tooltip.accept(net.minecraft.network.chat.Component
+                    .translatable("tooltip.automati.fly_ash_glass.blast")
+                    .withStyle(net.minecraft.ChatFormatting.GRAY));
+                tooltip.accept(net.minecraft.network.chat.Component
+                    .translatable("tooltip.automati.fly_ash_glass.wither")
+                    .withStyle(net.minecraft.ChatFormatting.DARK_PURPLE));
+            }
+        }
+    );
+
+    // Ash-rich soil: SCF-conditioned farmland — permanently moist, +25% crop
+    // growth, 10% depletion when a player harvests the crop above
+    public static final RegistryObject<Block> ASH_RICH_SOIL = BLOCKS.register("ash_rich_soil",
+        () -> new AshRichSoilBlock(BlockBehaviour.Properties.of()
+            .setId(BLOCKS.key("ash_rich_soil"))
+            .mapColor(MapColor.DIRT)
+            .sound(SoundType.GRAVEL)
+            .strength(0.6F)
+            .randomTicks()
+        )
+    );
+    public static final RegistryObject<Item> ASH_RICH_SOIL_ITEM = ITEMS.register("ash_rich_soil",
+        () -> new BlockItem(ASH_RICH_SOIL.get(), new Item.Properties().setId(ITEMS.key("ash_rich_soil")).useBlockDescriptionPrefix())
+    );
+
     // The Erg Jar: Automati's battery — 320,000 E (five lumps of coal), 80 E/t
     // in and out. Iron electrode accepts, copper terminal opposite discharges;
     // the wrench moves the terminal. Charge pips glow brighter as it fills.
@@ -304,6 +420,16 @@ public final class Automati {
                 output.accept(ENGINEERS_WRENCH.get());
                 output.accept(ASH.get());
                 output.accept(ASH_BLOCK_ITEM.get());
+                output.accept(WASHED_ASH.get());
+                output.accept(SCF.get());
+                output.accept(INDUSTRIAL_FERTILIZER.get());
+                output.accept(ASH_CLAY_BLEND.get());
+                output.accept(ASH_BRICK.get());
+                output.accept(SINTERED_ASH_PELLET.get());
+                output.accept(ASH_BRICKS_ITEM.get());
+                output.accept(ROAD_BASE_ITEM.get());
+                output.accept(FLY_ASH_GLASS_ITEM.get());
+                output.accept(ASH_RICH_SOIL_ITEM.get());
                 output.accept(IRON_DUST.get());
                 output.accept(COPPER_DUST.get());
                 output.accept(GOLD_DUST.get());
@@ -334,6 +460,10 @@ public final class Automati {
 
         // Register the item to a creative tab
         BuildCreativeModeTabContentsEvent.BUS.addListener(Automati::addCreative);
+
+        // Ash-rich soil nutrient depletion: player harvests only — automated
+        // harvesting (pistons, machines) spares the soil
+        net.minecraftforge.event.level.BlockEvent.BreakEvent.BUS.addListener(Automati::onCropHarvest);
     }
 
     private void commonSetup(final FMLCommonSetupEvent event) {
@@ -344,6 +474,17 @@ public final class Automati {
     private static void addCreative(BuildCreativeModeTabContentsEvent event) {
         if (event.getTabKey() == CreativeModeTabs.BUILDING_BLOCKS)
             event.accept(FACTORY_BLOCK_ITEM);
+    }
+
+    // Harvesting a crop off ash-rich soil costs nutrients 10% of the time
+    private static void onCropHarvest(net.minecraftforge.event.level.BlockEvent.BreakEvent event) {
+        if (!(event.getLevel() instanceof net.minecraft.server.level.ServerLevel serverLevel))
+            return;
+        if (!(event.getState().getBlock() instanceof net.minecraft.world.level.block.CropBlock))
+            return;
+        net.minecraft.core.BlockPos below = event.getPos().below();
+        if (serverLevel.getBlockState(below).is(ASH_RICH_SOIL.get()))
+            AshRichSoilBlock.maybeDeplete(serverLevel, below, serverLevel.getRandom());
     }
 
     // You can use EventBusSubscriber to automatically register all static methods in the class annotated with @SubscribeEvent

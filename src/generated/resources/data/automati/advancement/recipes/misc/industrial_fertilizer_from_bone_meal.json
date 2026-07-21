@@ -1,0 +1,32 @@
+{
+  "parent": "minecraft:recipes/root",
+  "criteria": {
+    "has_the_recipe": {
+      "conditions": {
+        "recipe": "automati:industrial_fertilizer_from_bone_meal"
+      },
+      "trigger": "minecraft:recipe_unlocked"
+    },
+    "has_washed_ash": {
+      "conditions": {
+        "items": [
+          {
+            "items": "automati:washed_ash"
+          }
+        ]
+      },
+      "trigger": "minecraft:inventory_changed"
+    }
+  },
+  "requirements": [
+    [
+      "has_the_recipe",
+      "has_washed_ash"
+    ]
+  ],
+  "rewards": {
+    "recipes": [
+      "automati:industrial_fertilizer_from_bone_meal"
+    ]
+  }
+}
