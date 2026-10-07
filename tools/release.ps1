@@ -14,7 +14,10 @@
 # CurseForge uploads. Those belong to the humans.
 param(
     [Parameter(Mandatory)][string]$Version,
-    [Parameter(Mandatory)][string]$Name
+    [Parameter(Mandatory)][string]$Name,
+    # Multiline commit body (here-string welcome). The v1.10.0/v1.11.0 commits
+    # shipped without prose and the owner missed it — don't let that recur.
+    [string]$Notes = ''
 )
 
 $repo = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
@@ -56,7 +59,11 @@ Write-Output "built $jar"
 
 # 5. commit + push
 git add -A
-git commit -m "Automati v$Version - $Name" -m "Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>"
+if ($Notes) {
+    git commit -m "Automati v$Version - $Name" -m $Notes
+} else {
+    git commit -m "Automati v$Version - $Name"
+}
 if ($LASTEXITCODE -ne 0) { throw "git commit failed" }
 git push
 if ($LASTEXITCODE -ne 0) { throw "git push failed - commit is local, push manually" }
