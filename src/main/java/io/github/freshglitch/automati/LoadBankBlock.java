@@ -7,8 +7,8 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 
-// The load bank block: no facing (its coils wrap all four sides). Ticking,
-// LIT state, and menu opening come from the base.
+// The load bank block. It has no front: its coils wrap all four sides, and
+// heat shimmers off the top while it burns energy away.
 public class LoadBankBlock extends AbstractMachineBlock {
 
     public LoadBankBlock(Properties properties) {
@@ -20,18 +20,9 @@ public class LoadBankBlock extends AbstractMachineBlock {
         return new LoadBankBlockEntity(pos, state);
     }
 
-    // Heat shimmer rising off the block while it burns energy away
     @Override
     public void animateTick(BlockState state, Level level, BlockPos pos, RandomSource random) {
-        if (!state.getValue(LIT))
-            return;
-
-        if (random.nextDouble() < 0.4) {
-            level.addParticle(ParticleTypes.WHITE_SMOKE,
-                pos.getX() + 0.2 + random.nextDouble() * 0.6,
-                pos.getY() + 1.02,
-                pos.getZ() + 0.2 + random.nextDouble() * 0.6,
-                0.0, 0.05, 0.0);
-        }
+        if (state.getValue(LIT) && random.nextDouble() < 0.4)
+            riseFromTop(level, pos, random, ParticleTypes.WHITE_SMOKE, 0.2, 1.02, 0.05);
     }
 }

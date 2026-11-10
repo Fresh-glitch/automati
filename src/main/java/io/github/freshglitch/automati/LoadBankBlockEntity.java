@@ -1,97 +1,55 @@
 package io.github.freshglitch.automati;
 
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
-import net.minecraft.core.HolderLookup;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.chat.Component;
-import net.minecraft.network.protocol.Packet;
-import net.minecraft.network.protocol.game.ClientGamePacketListener;
-import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.world.MenuProvider;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
-import net.minecraft.world.inventory.ContainerData;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
-import net.minecraftforge.common.capabilities.Capability;
-import net.minecraftforge.common.capabilities.ForgeCapabilities;
-import net.minecraftforge.common.util.LazyOptional;
-import net.minecraftforge.energy.IEnergyStorage;
-import org.jetbrains.annotations.Nullable;
 
-// A load bank: the real-world rig engineers use to test generators. It accepts
-// Ergs and burns them off through resistor coils as waste heat, at a rate the
-// player dials in from the GUI. Deliberately wasteful — that's its job.
+// A load bank, the rig engineers test generators with: it takes Ergs and
+// burns them off as waste heat, at a rate the player dials in from the GUI.
 public class LoadBankBlockEntity extends AbstractErgBlockEntity implements MenuProvider {
-    public static final int CAPACITY = 10_000;   // small input buffer
-    public static final int MAX_RECEIVE = 400;   // max Ergs accepted per tick
-    public static final int MAX_RATE = 400;      // max dump rate, Ergs per tick
-    public static final int RATE_STEP = 20;      // one button press
+    public static final int CAPACITY = 10_000;
+    public static final int MAX_RECEIVE = 400;
+    public static final int MAX_RATE = 400;     // highest dump rate, Ergs per tick
+    public static final int RATE_STEP = 20;     // one button press
 
-    private int dumpRate = 40; // Ergs dissipated per tick; starts matched to one generator
-
-    private final ContainerData data = new ContainerData() {
-        @Override
-        public int get(int index) {
-            return switch (index) {
-                case 0 -> dumpRate;
-                case 1 -> energy.getEnergyStored() & 0xFFFF;
-                case 2 -> (energy.getEnergyStored() >> 16) & 0xFFFF;
-                default -> 0;
-            };
-        }
-
-        @Override
-        public void set(int index, int value) {
-            if (index == 0)
-                dumpRate = value;
-        }
-
-        @Override
-        public int getCount() {
-            return 3;
-        }
-    };
+    private int dumpRate = 40;   // Ergs per tick; starts matched to one generator
 
     public LoadBankBlockEntity(BlockPos pos, BlockState state) {
-        super(Automati.LOAD_BANK_BLOCK_ENTITY.get(), pos, state, CAPACITY, MAX_RECEIVE, ErgPort.RECEIVE_ONLY);
+        super(Automati.LOAD_BANK.blockEntity().get(), pos, state, CAPACITY, MAX_RECEIVE, ErgPort.RECEIVE_ONLY);
+        syncToMenu(() -> dumpRate);
     }
 
+    @Override
     public void serverTick(Level level, BlockPos pos, BlockState state) {
-        // Dissipate energy through the coils
         int dumped = Math.min(dumpRate, energy.getEnergyStored());
         if (dumped > 0) {
-            energy.setEnergy(energy.getEnergyStored() - dumped);
+            energy.consume(dumped);
             setChanged();
         }
 
-        // Coils glow whenever energy is actually being burned off
+        // the coils glow only while energy is actually being burned off
         boolean glowing = dumped > 0;
-        if (state.getValue(LoadBankBlock.LIT) != glowing)
-            level.setBlock(pos, state.setValue(LoadBankBlock.LIT, glowing), 3);
+        if (state.getValue(AbstractMachineBlock.LIT) != glowing)
+            level.setBlock(pos, state.setValue(AbstractMachineBlock.LIT, glowing), 3);
 
         maybeSyncEnergyToClients(level, pos);
     }
 
-    // Called from the menu when the player presses - or +
+    // The menu's - and + buttons
     public void adjustDumpRate(int delta) {
-        dumpRate = Math.max(0, Math.min(MAX_RATE, dumpRate + delta));
+        dumpRate = Math.clamp(dumpRate + delta, 0, MAX_RATE);
         setChanged();
     }
 
     @Override
-    public Component getDisplayName() {
-        return Component.translatable("block.automati.load_bank");
-    }
-
-    @Override
     public AbstractContainerMenu createMenu(int containerId, Inventory playerInventory, Player player) {
-        return new LoadBankMenu(containerId, playerInventory, this, data);
+        return new LoadBankMenu(containerId, playerInventory, this);
     }
 
     @Override
@@ -103,6 +61,6 @@ public class LoadBankBlockEntity extends AbstractErgBlockEntity implements MenuP
     @Override
     protected void loadAdditional(ValueInput input) {
         super.loadAdditional(input);
-        dumpRate = Math.max(0, Math.min(MAX_RATE, input.getIntOr("DumpRate", 40)));
+        dumpRate = Math.clamp(input.getIntOr("DumpRate", 40), 0, MAX_RATE);
     }
 }

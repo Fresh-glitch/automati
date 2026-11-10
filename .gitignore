@@ -24,6 +24,9 @@ run
 run-data
 .mcp.json
 
+# secrets (API tokens for the upload scripts)
+.env
+
 # Files from Forge MDK
 forge_README.txt
 forge*changelog.txt

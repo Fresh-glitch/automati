@@ -11,9 +11,9 @@ import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.item.crafting.SingleItemRecipe;
 
-// A crushing recipe: one ingredient in, one product out. Data-driven — every
-// recipe is a JSON file under data/automati/recipe/, editable by datapacks.
-// Rides on the same single-input machinery the vanilla stonecutter uses.
+// A crushing recipe: one ingredient in, one product out, built on the vanilla
+// stonecutter's single-item recipe. Every recipe is a JSON file under
+// data/automati/recipe/crushing/, so datapacks can add or change them.
 public class CrusherRecipe extends SingleItemRecipe {
     public static final MapCodec<CrusherRecipe> MAP_CODEC = SingleItemRecipe.simpleMapCodec(CrusherRecipe::new);
     public static final StreamCodec<RegistryFriendlyByteBuf, CrusherRecipe> STREAM_CODEC = SingleItemRecipe.simpleStreamCodec(CrusherRecipe::new);

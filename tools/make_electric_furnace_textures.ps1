@@ -106,9 +106,6 @@ Draw-Slot 151 17 18 52 (C 43 43 43)
 for ($seg = 1; $seg -lt 10; $seg++) {
   $g.FillRectangle((New-Object System.Drawing.SolidBrush (C 66 66 66)), 152, (18 + $seg*5), 16, 1)
 }
-# mode-toggle socket top-left: the screen renders a furnace/blast furnace
-# item icon inside it (interior 16x16 at 7,15)
-Draw-Slot 6 14 18 18 $slotBody
 $g.Dispose()
 
 function Draw-Arrow($ox, $oy, $shaft, $head) {
@@ -133,6 +130,57 @@ for ($y = 0; $y -lt 50; $y++) {
     $gui.SetPixel(176 + $x, 31 + $y, $c)
   }
 }
+# ---- mode-toggle button sprites: raised pressable buttons bearing mini
+# front-face pixel art of the two furnaces. Screen blits one at (5,5):
+# furnace at (200,0), blast furnace at (216,0), each 16x16 ----
+function Draw-ButtonBase($bx) {
+  for ($y = 0; $y -lt 16; $y++) {
+    for ($x = 0; $x -lt 16; $x++) {
+      $c = C 168 172 176                                     # face
+      if ($x -eq 0 -or $y -eq 0 -or $x -eq 15 -or $y -eq 15) { $c = C 34 34 38 }   # outline
+      elseif ($y -eq 1 -or $x -eq 1) { $c = C 232 235 238 }  # raised highlight
+      elseif ($y -eq 14 -or $x -eq 14) { $c = C 96 100 106 } # raised shadow
+      $gui.SetPixel($bx + $x, $y, $c)
+    }
+  }
+}
+
+# furnace face: cobble-grey front, dark mouth, ember glow
+Draw-ButtonBase 200
+for ($y = 3; $y -le 12; $y++) {
+  for ($x = 3; $x -le 12; $x++) {
+    $spek = ((($x * 3 + $y * 5) % 7) -eq 0)
+    $gui.SetPixel(200 + $x, $y, $(if ($spek) { C 112 114 118 } else { C 134 136 140 }))
+  }
+}
+for ($x = 5; $x -le 10; $x++) {                              # mouth
+  for ($y = 8; $y -le 12; $y++) { $gui.SetPixel(200 + $x, $y, (C 28 28 32)) }
+}
+foreach ($p in @(@(6,11), @(8,12), @(9,11), @(7,11))) {      # embers
+  $gui.SetPixel(200 + $p[0], $p[1], (C 246 150 42))
+}
+$gui.SetPixel(200 + 7, 12, (C 255 200 60)); $gui.SetPixel(200 + 8, 11, (C 226 88 34))
+
+# blast furnace face: steel body, iron top band, white-hot slit
+Draw-ButtonBase 216
+for ($y = 3; $y -le 12; $y++) {
+  for ($x = 3; $x -le 12; $x++) {
+    $spek = ((($x * 5 + $y * 3) % 9) -eq 0)
+    $gui.SetPixel(216 + $x, $y, $(if ($spek) { C 88 92 98 } else { C 106 110 116 }))
+  }
+}
+for ($y = 3; $y -le 4; $y++) {                               # iron band
+  for ($x = 3; $x -le 12; $x++) { $gui.SetPixel(216 + $x, $y, (C 152 156 162)) }
+}
+foreach ($p in @(@(3,3), @(12,3), @(3,12), @(12,12))) {      # rivets
+  $gui.SetPixel(216 + $p[0], $p[1], (C 186 190 196))
+}
+for ($x = 4; $x -le 11; $x++) {                              # white-hot slit
+  $gui.SetPixel(216 + $x, 9, (C 255 236 190))
+  $gui.SetPixel(216 + $x, 10, (C 248 170 60))
+}
+$gui.SetPixel(216 + 7, 9, (C 255 252 235)); $gui.SetPixel(216 + 8, 9, (C 255 252 235))
+
 $gui.Save("$texDir\gui\container\electric_furnace.png", [System.Drawing.Imaging.ImageFormat]::Png)
 
 # previews: off face + first on-frame

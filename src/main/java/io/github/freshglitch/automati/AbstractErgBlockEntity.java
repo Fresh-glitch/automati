@@ -4,9 +4,11 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
+import net.minecraft.world.inventory.ContainerData;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
@@ -19,48 +21,44 @@ import net.minecraftforge.common.util.LazyOptional;
 import net.minecraftforge.energy.IEnergyStorage;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.function.ToIntFunction;
+import java.util.function.IntSupplier;
 
-// Base class for every Erg-holding block entity. Owns the buffer, its
-// save/load, the exposed energy port, and the throttled client sync that
-// feeds the Engineer's Goggles HUD.
+// Base for every block entity that holds Ergs. Owns the buffer and its port,
+// persistence, the throttled client sync behind the goggles HUD, and the
+// plumbing machines share: menu values, display name, an optional inventory.
 //
-// A new machine's checklist:
-//   1. extend this, passing capacity, transfer rate, and its port type
-//   2. override serverTick() with the machine's logic; call
-//      maybeSyncEnergyToClients() somewhere in it
-//   3. producers: call distributeEnergy() to push output to neighbours
-// Everything else — persistence, capabilities, goggles support — is inherited.
-public abstract class AbstractErgBlockEntity extends BlockEntity {
+// A new machine passes capacity, transfer rate and port type to super and
+// implements serverTick(), calling maybeSyncEnergyToClients() in it.
+// Producers push their output with distributeEnergy().
+public abstract class AbstractErgBlockEntity extends BlockEntity implements ServerTicking {
 
-    // What the machine's energy port lets neighbours do
+    // What the energy port lets neighbours do
     public enum ErgPort {
-        RECEIVE_ONLY,  // consumers: energy flows in, never out
-        EXTRACT_ONLY,  // producers: energy flows out, never in
-        OPEN           // conduits: both directions
+        RECEIVE_ONLY,  // consumers
+        EXTRACT_ONLY,  // producers
+        OPEN           // conduits
     }
+
+    private static final Direction[] DIRECTIONS = Direction.values();
+    private static final IntSupplier[] NO_MENU_VALUES = {};
 
     protected final ErgStorage energy;
     private final LazyOptional<IEnergyStorage> energyOptional;
 
+    // Machines with slots assign this in their constructor. The base then
+    // saves it, serves it to hoppers and spills it when the block breaks.
+    @Nullable
+    protected MachineInventory inventory;
+
+    private IntSupplier[] menuValues = NO_MENU_VALUES;
+
     private int lastSyncedEnergy = -1;
     private int syncCooldown;
 
-    // Flow-rate bookkeeping for the goggles: Ergs crossing the port, averaged
-    // over 20-tick windows so the readout is steady instead of jittery
+    // Port traffic averaged over 20-tick windows, so the readout holds steady
     private int flowAccumIn, flowAccumOut, flowSampleTicks;
     private int flowInRate, flowOutRate;
     private int lastSyncedFlowIn = -1, lastSyncedFlowOut = -1;
-
-    public int getFlowInRate() {
-        return flowInRate;
-    }
-
-    public int getFlowOutRate() {
-        return flowOutRate;
-    }
 
     protected AbstractErgBlockEntity(BlockEntityType<?> type, BlockPos pos, BlockState state,
                                      int capacity, int maxTransfer, ErgPort port) {
@@ -74,67 +72,71 @@ public abstract class AbstractErgBlockEntity extends BlockEntity {
         this.energyOptional = LazyOptional.of(() -> exposed);
     }
 
-    // Machines override this with their logic; blocks dispatch to it each tick
-    public void serverTick(Level level, BlockPos pos, BlockState state) {
+    public int getFlowInRate() {
+        return flowInRate;
     }
 
-    // Share a budget of Ergs evenly among every adjacent block that can accept
-    // them — parallel loads draw simultaneously, like branches of a real
-    // circuit. perNeighbourLimit may cap what a specific neighbour can take
-    // this tick (return <= 0 to skip it); pass null for no per-neighbour rule.
-    protected void distributeEnergy(Level level, BlockPos pos, int budget,
-                                    @Nullable ToIntFunction<BlockEntity> perNeighbourLimit) {
-        distributeEnergy(level, pos, budget, perNeighbourLimit, null);
+    public int getFlowOutRate() {
+        return flowOutRate;
     }
 
-    protected void distributeEnergy(Level level, BlockPos pos, int budget,
-                                    @Nullable ToIntFunction<BlockEntity> perNeighbourLimit,
-                                    @Nullable java.util.function.Predicate<Direction> sideFilter) {
+    public MachineInventory getInventory() {
+        return inventory;
+    }
+
+    // Shares a budget of Ergs evenly among the neighbours that can take them,
+    // like parallel branches of a circuit. Override feedsSide() and
+    // pushLimit() to narrow where the output goes.
+    protected void distributeEnergy(Level level, BlockPos pos, int budget) {
         if (budget <= 0 || energy.getEnergyStored() == 0)
             return;
 
-        List<IEnergyStorage> targets = new ArrayList<>();
-        List<Integer> limits = new ArrayList<>();
-        for (Direction direction : Direction.values()) {
-            if (sideFilter != null && !sideFilter.test(direction))
+        IEnergyStorage[] targets = new IEnergyStorage[DIRECTIONS.length];
+        int[] limits = new int[DIRECTIONS.length];
+        int count = 0;
+        BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
+        for (Direction direction : DIRECTIONS) {
+            if (!feedsSide(direction))
                 continue;
-            BlockEntity neighbour = level.getBlockEntity(pos.relative(direction));
+            BlockEntity neighbour = level.getBlockEntity(cursor.setWithOffset(pos, direction));
             if (neighbour == null)
                 continue;
-
-            int limit = perNeighbourLimit == null ? budget
-                : Math.min(budget, perNeighbourLimit.applyAsInt(neighbour));
+            int limit = Math.min(budget, pushLimit(neighbour, budget));
             if (limit <= 0)
                 continue;
-
-            final int cap = limit;
-            neighbour.getCapability(ForgeCapabilities.ENERGY, direction.getOpposite()).ifPresent(target -> {
-                if (target.canReceive() && target.receiveEnergy(cap, true) > 0) {
-                    targets.add(target);
-                    limits.add(cap);
-                }
-            });
+            IEnergyStorage target = neighbour.getCapability(ForgeCapabilities.ENERGY, direction.getOpposite()).orElse(null);
+            if (target != null && target.canReceive() && target.receiveEnergy(limit, true) > 0) {
+                targets[count] = target;
+                limits[count++] = limit;
+            }
         }
-        if (targets.isEmpty())
+        if (count == 0)
             return;
 
-        int share = Math.max(1, budget / targets.size());
-        for (int i = 0; i < targets.size(); i++) {
-            if (energy.getEnergyStored() == 0)
-                break;
-            int amount = Math.min(Math.min(share, limits.get(i)), energy.getEnergyStored());
-            int accepted = targets.get(i).receiveEnergy(amount, true);
+        int share = Math.max(1, budget / count);
+        for (int i = 0; i < count && energy.getEnergyStored() > 0; i++) {
+            int amount = Math.min(Math.min(share, limits[i]), energy.getEnergyStored());
+            int accepted = targets[i].receiveEnergy(amount, true);
             if (accepted > 0) {
-                targets.get(i).receiveEnergy(energy.extractEnergy(accepted, false), false);
+                targets[i].receiveEnergy(energy.extractEnergy(accepted, false), false);
                 setChanged();
             }
         }
     }
 
-    // Push the energy level and flow rates to nearby clients at most twice a
-    // second, and only when something actually changed
+    // Whether distributeEnergy() may push out through this side
+    protected boolean feedsSide(Direction side) {
+        return true;
+    }
+
+    // The most distributeEnergy() may send this neighbour; 0 or less skips it
+    protected int pushLimit(BlockEntity neighbour, int budget) {
+        return budget;
+    }
+
+    // Sends the energy level and flow rates to nearby clients, at most twice
+    // a second and only when something changed
     protected void maybeSyncEnergyToClients(Level level, BlockPos pos) {
-        // sample this tick's port traffic into the 20-tick flow window
         flowAccumIn += energy.pollTickIn();
         flowAccumOut += energy.pollTickOut();
         if (++flowSampleTicks >= 20) {
@@ -160,10 +162,49 @@ public abstract class AbstractErgBlockEntity extends BlockEntity {
         }
     }
 
+    // Call once from the constructor: the values the machine's menu shows
+    // besides the energy level. A later call replaces an earlier one.
+    protected final void syncToMenu(IntSupplier... values) {
+        menuValues = values;
+    }
+
+    // What an open menu mirrors. A data slot only carries 16 bits, so slots 0
+    // and 1 hold the two halves of the energy level; the syncToMenu() values
+    // follow from slot 2.
+    public ContainerData menuData() {
+        return new ContainerData() {
+            @Override
+            public int get(int index) {
+                return switch (index) {
+                    case 0 -> energy.getEnergyStored() & 0xFFFF;
+                    case 1 -> energy.getEnergyStored() >>> 16;
+                    default -> menuValues[index - 2].getAsInt();
+                };
+            }
+
+            @Override
+            public void set(int index, int value) {
+                // one way: the server never takes values back from the client
+            }
+
+            @Override
+            public int getCount() {
+                return 2 + menuValues.length;
+            }
+        };
+    }
+
+    // Satisfies MenuProvider for the machines that implement it
+    public Component getDisplayName() {
+        return getBlockState().getBlock().getName();
+    }
+
     @Override
     public <T> LazyOptional<T> getCapability(Capability<T> cap, @Nullable Direction side) {
         if (cap == ForgeCapabilities.ENERGY)
             return energyOptional.cast();
+        if (cap == ForgeCapabilities.ITEM_HANDLER && inventory != null)
+            return inventory.automation().cast();
         return super.getCapability(cap, side);
     }
 
@@ -171,10 +212,20 @@ public abstract class AbstractErgBlockEntity extends BlockEntity {
     public void invalidateCaps() {
         super.invalidateCaps();
         energyOptional.invalidate();
+        if (inventory != null)
+            inventory.automation().invalidate();
     }
 
-    // The tag clients receive on chunk load and on sendBlockUpdated — it flows
-    // into loadAdditional, whose reads all tolerate missing keys
+    // Since 26.x this is where a container spills its contents on removal
+    @Override
+    public void preRemoveSideEffects(BlockPos pos, BlockState state) {
+        super.preRemoveSideEffects(pos, state);
+        if (inventory != null && level != null && !level.isClientSide())
+            inventory.drop(level, pos);
+    }
+
+    // Clients get this tag on chunk load and on sendBlockUpdated. It runs
+    // through loadAdditional, whose reads all tolerate missing keys.
     @Override
     public CompoundTag getUpdateTag(HolderLookup.Provider registries) {
         CompoundTag tag = super.getUpdateTag(registries);
@@ -193,14 +244,18 @@ public abstract class AbstractErgBlockEntity extends BlockEntity {
     protected void saveAdditional(ValueOutput output) {
         super.saveAdditional(output);
         output.putInt("Energy", energy.getEnergyStored());
+        if (inventory != null)
+            inventory.save(output);
     }
 
     @Override
     protected void loadAdditional(ValueInput input) {
         super.loadAdditional(input);
         energy.setEnergy(input.getIntOr("Energy", 0));
-        // flow rates only travel in update tags; absent on disk loads is fine
+        // flow rates only travel in update tags
         flowInRate = input.getIntOr("FlowIn", 0);
         flowOutRate = input.getIntOr("FlowOut", 0);
+        if (inventory != null)
+            inventory.load(input);
     }
 }

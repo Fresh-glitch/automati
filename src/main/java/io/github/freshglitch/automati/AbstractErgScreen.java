@@ -7,27 +7,26 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.player.Inventory;
 
-// Base screen for Erg machines: draws the panel texture and the standard
-// ridged Erg gauge (16x50 fill at texture (176,31), socket at (152,18)) with
-// its hover tooltip. Subclasses draw their machine-specific elements in
-// extractMachine() and add extra tooltips in extractExtraTooltips().
-public abstract class AbstractErgScreen<T extends AbstractErgMenu> extends AbstractContainerScreen<T> {
-    protected static final int BAR_U = 176, BAR_V = 31, BAR_WIDTH = 16, BAR_HEIGHT = 50;
-    protected static final int BAR_X = 152, BAR_Y = 18;
+// Base screen for Erg machines: draws the panel, the Erg gauge with its hover
+// tooltip, and a centered title. Subclasses add their own elements in
+// extractMachine() and their own tooltips in extractExtraTooltips().
+//
+// Every GUI texture shares one layout: the 176x166 panel at (0,0), the gauge
+// fill (16x50) at (176,31) and, for machines with a progress arrow, its fill
+// (24x16) at (176,0).
+public abstract class AbstractErgScreen<T extends AbstractErgMenu<?>> extends AbstractContainerScreen<T> {
+    private static final int GAUGE_X = 152, GAUGE_Y = 18, GAUGE_WIDTH = 16, GAUGE_HEIGHT = 50;
+    private static final int ARROW_X = 78, ARROW_Y = 35, ARROW_WIDTH = 24, ARROW_HEIGHT = 16;
 
     private final Identifier texture;
 
-    protected AbstractErgScreen(T menu, Inventory playerInventory, Component title, Identifier texture) {
+    // textureName: the file under textures/gui/container/, without extension
+    protected AbstractErgScreen(T menu, Inventory playerInventory, Component title, String textureName) {
         super(menu, playerInventory, title);
-        this.texture = texture;
+        this.texture = Automati.id("textures/gui/container/" + textureName + ".png");
     }
 
-    protected Identifier texture() {
-        return texture;
-    }
-
-    // Machine names sit top-center, the way vanilla's furnace and crafting
-    // table do (the "Inventory" label stays left-aligned, also like vanilla)
+    // Titles sit top-center like on vanilla's furnace; "Inventory" stays left
     @Override
     protected void init() {
         super.init();
@@ -36,41 +35,53 @@ public abstract class AbstractErgScreen<T extends AbstractErgMenu> extends Abstr
 
     @Override
     public void extractBackground(GuiGraphicsExtractor extractor, int mouseX, int mouseY, float partialTick) {
-        extractor.blit(RenderPipelines.GUI_TEXTURED, texture, leftPos, topPos, 0.0F, 0.0F, imageWidth, imageHeight, 256, 256);
-
+        sprite(extractor, 0, 0, 0, 0, imageWidth, imageHeight);
         extractMachine(extractor, mouseX, mouseY, partialTick);
 
-        // Energy gauge fills bottom-up
-        int filled = Math.round(BAR_HEIGHT * (float) menu.getEnergy() / menu.getCapacity());
+        // the gauge fills from the bottom up
+        int filled = Math.round(GAUGE_HEIGHT * (float) menu.getEnergy() / menu.getCapacity());
         if (filled > 0) {
-            extractor.blit(RenderPipelines.GUI_TEXTURED, texture,
-                leftPos + BAR_X, topPos + BAR_Y + (BAR_HEIGHT - filled),
-                BAR_U, BAR_V + (BAR_HEIGHT - filled),
-                BAR_WIDTH, filled, 256, 256);
+            int empty = GAUGE_HEIGHT - filled;
+            sprite(extractor, GAUGE_X, GAUGE_Y + empty, 176, 31 + empty, GAUGE_WIDTH, filled);
         }
-    }
-
-    // Machine-specific background elements: flames, arrows, rate bars...
-    protected void extractMachine(GuiGraphicsExtractor extractor, int mouseX, int mouseY, float partialTick) {
-    }
-
-    // Machine-specific hover tooltips beyond the energy gauge
-    protected void extractExtraTooltips(GuiGraphicsExtractor extractor, int mouseX, int mouseY) {
     }
 
     @Override
     public void extractRenderState(GuiGraphicsExtractor extractor, int mouseX, int mouseY, float partialTick) {
         super.extractRenderState(extractor, mouseX, mouseY, partialTick);
 
-        // Hovering the gauge shows the exact stored Ergs
-        int barLeft = leftPos + BAR_X;
-        int barTop = topPos + BAR_Y;
-        if (mouseX >= barLeft && mouseX < barLeft + BAR_WIDTH && mouseY >= barTop && mouseY < barTop + BAR_HEIGHT) {
+        if (isOver(GAUGE_X, GAUGE_Y, GAUGE_WIDTH, GAUGE_HEIGHT, mouseX, mouseY)) {
             extractor.setTooltipForNextFrame(font,
                 Component.literal(String.format("%,d / %,d E", menu.getEnergy(), menu.getCapacity())),
                 mouseX, mouseY);
         }
-
         extractExtraTooltips(extractor, mouseX, mouseY);
+    }
+
+    // Machine-specific background elements: flames, arrows, rate bars...
+    protected void extractMachine(GuiGraphicsExtractor extractor, int mouseX, int mouseY, float partialTick) {
+    }
+
+    // Machine-specific hover tooltips
+    protected void extractExtraTooltips(GuiGraphicsExtractor extractor, int mouseX, int mouseY) {
+    }
+
+    // Draws a piece of the GUI texture at a position relative to the panel
+    protected void sprite(GuiGraphicsExtractor extractor, int x, int y, int u, int v, int width, int height) {
+        extractor.blit(RenderPipelines.GUI_TEXTURED, texture, leftPos + x, topPos + y, u, v, width, height, 256, 256);
+    }
+
+    // Fills the progress arrow from the left; progress runs 0..1
+    protected void progressArrow(GuiGraphicsExtractor extractor, float progress) {
+        int filled = Math.round(ARROW_WIDTH * progress);
+        if (filled > 0)
+            sprite(extractor, ARROW_X, ARROW_Y, 176, 0, filled, ARROW_HEIGHT);
+    }
+
+    // Whether the mouse is over a rectangle given relative to the panel
+    protected boolean isOver(int x, int y, int width, int height, double mouseX, double mouseY) {
+        double relativeX = mouseX - leftPos;
+        double relativeY = mouseY - topPos;
+        return relativeX >= x && relativeX < x + width && relativeY >= y && relativeY < y + height;
     }
 }

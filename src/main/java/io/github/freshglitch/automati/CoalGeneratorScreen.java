@@ -1,56 +1,38 @@
 package io.github.freshglitch.automati;
 
 import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.player.Inventory;
 
-// Coal generator GUI: burn flame above the fuel slot and the clog warning
-// lamp. Panel and Erg gauge come from the base class.
+// Coal generator GUI: the burn flame above the fuel slot and the clog lamp
+// above the ash bin
 public class CoalGeneratorScreen extends AbstractErgScreen<CoalGeneratorMenu> {
-    private static final Identifier TEXTURE =
-        Identifier.fromNamespaceAndPath(Automati.MODID, "textures/gui/container/coal_generator.png");
-
-    // Flame sprite: 14x14 at (176,0) in the texture, drawn above the fuel slot
-    private static final int FLAME_U = 176, FLAME_V = 0, FLAME_SIZE = 14;
-    private static final int FLAME_X = 81, FLAME_Y = 35;
-    // Clog warning lamp: 8x8 at (192,0), shown above the ash slot when the bin is full
-    private static final int LAMP_U = 192, LAMP_V = 0, LAMP_SIZE = 8;
-    private static final int LAMP_X = 121, LAMP_Y = 38;
+    // Flame sprite: 14x14 at texture (176,0)
+    private static final int FLAME_X = 81, FLAME_Y = 35, FLAME_SIZE = 14;
+    // Clog lamp sprite: 8x8 at texture (192,0)
+    private static final int LAMP_X = 121, LAMP_Y = 38, LAMP_SIZE = 8;
 
     public CoalGeneratorScreen(CoalGeneratorMenu menu, Inventory playerInventory, Component title) {
-        super(menu, playerInventory, title, TEXTURE);
+        super(menu, playerInventory, title, "coal_generator");
     }
 
     @Override
     protected void extractMachine(GuiGraphicsExtractor extractor, int mouseX, int mouseY, float partialTick) {
-        // Flame burns down as the current piece of fuel is consumed
+        // the flame burns down with the piece of fuel
         if (menu.isBurning()) {
             int height = Math.max(1, Math.round(FLAME_SIZE * menu.getBurnProgress()));
-            extractor.blit(RenderPipelines.GUI_TEXTURED, texture(),
-                leftPos + FLAME_X, topPos + FLAME_Y + (FLAME_SIZE - height),
-                FLAME_U, FLAME_V + (FLAME_SIZE - height),
-                FLAME_SIZE, height, 256, 256);
+            int burnt = FLAME_SIZE - height;
+            sprite(extractor, FLAME_X, FLAME_Y + burnt, 176, burnt, FLAME_SIZE, height);
         }
-
-        // Red warning lamp when the ash bin has choked the machine
-        if (menu.isClogged()) {
-            extractor.blit(RenderPipelines.GUI_TEXTURED, texture(),
-                leftPos + LAMP_X, topPos + LAMP_Y, LAMP_U, LAMP_V, LAMP_SIZE, LAMP_SIZE, 256, 256);
-        }
+        if (menu.isClogged())
+            sprite(extractor, LAMP_X, LAMP_Y, 192, 0, LAMP_SIZE, LAMP_SIZE);
     }
 
     @Override
     protected void extractExtraTooltips(GuiGraphicsExtractor extractor, int mouseX, int mouseY) {
-        int lampLeft = leftPos + LAMP_X;
-        int lampTop = topPos + LAMP_Y;
-        if (menu.isClogged()
-                && mouseX >= lampLeft && mouseX < lampLeft + LAMP_SIZE
-                && mouseY >= lampTop && mouseY < lampTop + LAMP_SIZE) {
+        if (menu.isClogged() && isOver(LAMP_X, LAMP_Y, LAMP_SIZE, LAMP_SIZE, mouseX, mouseY)) {
             extractor.setTooltipForNextFrame(font,
-                Component.translatable("gui.automati.coal_generator.clogged"),
-                mouseX, mouseY);
+                Component.translatable("gui.automati.coal_generator.clogged"), mouseX, mouseY);
         }
     }
 }

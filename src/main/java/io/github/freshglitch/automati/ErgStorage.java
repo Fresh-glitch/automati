@@ -3,12 +3,11 @@ package io.github.freshglitch.automati;
 import net.minecraftforge.energy.EnergyStorage;
 import net.minecraftforge.energy.IEnergyStorage;
 
-// Automati's energy is measured in Ergs (E). Internally this rides on the Forge
-// energy capability so our own machines (and, if we ever want, other mods') can
-// exchange energy through the standard interface.
+// A buffer of Ergs (E), Automati's energy unit. It rides on Forge's energy
+// capability, so machines trade energy through the standard interface.
 public class ErgStorage extends EnergyStorage {
-    // Ergs that actually crossed this buffer's port since the last poll —
-    // the raw material for the goggles' flow-rate readout
+    // Ergs that crossed the port since the last poll: the raw data behind the
+    // goggles' flow readout
     private int tickIn;
     private int tickOut;
 
@@ -33,95 +32,79 @@ public class ErgStorage extends EnergyStorage {
     }
 
     public int pollTickIn() {
-        int v = tickIn;
+        int polled = tickIn;
         tickIn = 0;
-        return v;
+        return polled;
     }
 
     public int pollTickOut() {
-        int v = tickOut;
+        int polled = tickOut;
         tickOut = 0;
-        return v;
+        return polled;
     }
 
-    // Used by generators: adds energy directly, ignoring the receive-rate limit,
-    // clamped to capacity.
+    // Generation and consumption happen inside the machine: they skip the
+    // transfer limit and do not count as port traffic
     public void generate(int amount) {
         energy = Math.min(capacity, energy + amount);
+    }
+
+    public void consume(int amount) {
+        energy = Math.max(0, energy - amount);
     }
 
     public void setEnergy(int amount) {
         energy = Math.max(0, Math.min(capacity, amount));
     }
 
-    // Port views: what a machine shows its neighbours. Consumers expose a
-    // receive-only view, producers an extract-only one — the direction rules
-    // that keep energy from flowing backwards through the grid.
+    // One-way views of this buffer. Consumers show their neighbours a
+    // receive-only port and producers an extract-only one, which keeps energy
+    // from flowing backwards through the grid.
     public IEnergyStorage receiveOnlyView() {
-        return new IEnergyStorage() {
-            @Override
-            public int receiveEnergy(int maxReceive, boolean simulate) {
-                return ErgStorage.this.receiveEnergy(maxReceive, simulate);
-            }
-
-            @Override
-            public int extractEnergy(int maxExtract, boolean simulate) {
-                return 0;
-            }
-
-            @Override
-            public int getEnergyStored() {
-                return ErgStorage.this.getEnergyStored();
-            }
-
-            @Override
-            public int getMaxEnergyStored() {
-                return ErgStorage.this.getMaxEnergyStored();
-            }
-
-            @Override
-            public boolean canExtract() {
-                return false;
-            }
-
-            @Override
-            public boolean canReceive() {
-                return true;
-            }
-        };
+        return new View(true, false);
     }
 
     public IEnergyStorage extractOnlyView() {
-        return new IEnergyStorage() {
-            @Override
-            public int receiveEnergy(int maxReceive, boolean simulate) {
-                return 0;
-            }
+        return new View(false, true);
+    }
 
-            @Override
-            public int extractEnergy(int maxExtract, boolean simulate) {
-                return ErgStorage.this.extractEnergy(maxExtract, simulate);
-            }
+    private final class View implements IEnergyStorage {
+        private final boolean receives;
+        private final boolean extracts;
 
-            @Override
-            public int getEnergyStored() {
-                return ErgStorage.this.getEnergyStored();
-            }
+        private View(boolean receives, boolean extracts) {
+            this.receives = receives;
+            this.extracts = extracts;
+        }
 
-            @Override
-            public int getMaxEnergyStored() {
-                return ErgStorage.this.getMaxEnergyStored();
-            }
+        @Override
+        public int receiveEnergy(int maxReceive, boolean simulate) {
+            return receives ? ErgStorage.this.receiveEnergy(maxReceive, simulate) : 0;
+        }
 
-            @Override
-            public boolean canExtract() {
-                return true;
-            }
+        @Override
+        public int extractEnergy(int maxExtract, boolean simulate) {
+            return extracts ? ErgStorage.this.extractEnergy(maxExtract, simulate) : 0;
+        }
 
-            @Override
-            public boolean canReceive() {
-                return false;
-            }
-        };
+        @Override
+        public int getEnergyStored() {
+            return ErgStorage.this.getEnergyStored();
+        }
+
+        @Override
+        public int getMaxEnergyStored() {
+            return ErgStorage.this.getMaxEnergyStored();
+        }
+
+        @Override
+        public boolean canExtract() {
+            return extracts;
+        }
+
+        @Override
+        public boolean canReceive() {
+            return receives;
+        }
     }
 }

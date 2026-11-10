@@ -1,15 +1,12 @@
 package io.github.freshglitch.automati;
 
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Holder;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.damagesource.CombatRules;
 import net.minecraft.world.damagesource.DamageSource;
-import net.minecraft.world.damagesource.DamageType;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
@@ -18,11 +15,14 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.Vec3;
 
-// The crusher block: exposed counter-rotating blade rollers on top, exactly
-// as dangerous as they look. Ticking, LIT state, and menu opening come from
-// the base.
+// The crusher block: counter-rotating blade rollers lie exposed on top, and
+// while they run they are exactly as dangerous as they look.
 public class CrusherBlock extends AbstractMachineBlock {
+    private static final float BLADE_DAMAGE = 6.0F;   // an iron sword's worth
+    private static final EquipmentSlot[] ARMOR_SLOTS = {
+        EquipmentSlot.FEET, EquipmentSlot.LEGS, EquipmentSlot.CHEST, EquipmentSlot.HEAD };
 
     public CrusherBlock(Properties properties) {
         super(properties);
@@ -33,71 +33,56 @@ public class CrusherBlock extends AbstractMachineBlock {
         return new CrusherBlockEntity(pos, state);
     }
 
-    // Standing on spinning blade rollers ends the way you'd expect: an
-    // iron-sword-grade bite (6.0) that shrugs off half the victim's armor.
-    // We do the armor math ourselves against the halved value, then deliver
-    // the result through an armor-bypassing damage type so armor isn't
-    // counted twice. Sneaking does not help — the blades don't care.
+    // Running blades bite whoever stands on them, sneaking or not
     @Override
     public void stepOn(Level level, BlockPos pos, BlockState state, Entity entity) {
-        if (level instanceof ServerLevel serverLevel && state.getValue(LIT)
-                && entity instanceof LivingEntity living) {
-            Holder<DamageType> type = serverLevel.registryAccess()
-                .lookupOrThrow(Registries.DAMAGE_TYPE)
-                .getOrThrow(Automati.CRUSHER_DAMAGE);
-            DamageSource source = new DamageSource(type);
-            float halvedArmor = living.getArmorValue() * 0.5F;
-            float toughness = (float) living.getAttributeValue(Attributes.ARMOR_TOUGHNESS);
-            float damage = CombatRules.getDamageAfterAbsorb(living, 6.0F, source, halvedArmor, toughness);
-
-            // Because the damage type bypasses armor, vanilla never wears the
-            // armor down itself — so each landed bite chews the worn plating too
-            if (living.hurtServer(serverLevel, source, damage)) {
-                for (EquipmentSlot slot : new EquipmentSlot[] {
-                        EquipmentSlot.FEET, EquipmentSlot.LEGS, EquipmentSlot.CHEST, EquipmentSlot.HEAD }) {
-                    ItemStack worn = living.getItemBySlot(slot);
-                    if (!worn.isEmpty())
-                        worn.hurtAndBreak(2, living, slot);
-                }
-            }
-
-            // The rollers bite inward: instead of knockback flinging the victim
-            // clear, drag them toward the centre of the blades. Damped current
-            // velocity + inward pull overrides the hurt knockback; hurtMarked
-            // forces the server to sync the new velocity to player clients.
-            double pullX = pos.getX() + 0.5 - living.getX();
-            double pullZ = pos.getZ() + 0.5 - living.getZ();
-            double len = Math.sqrt(pullX * pullX + pullZ * pullZ);
-            if (len > 0.05) {
-                var motion = living.getDeltaMovement();
-                living.setDeltaMovement(
-                    motion.x * 0.4 + (pullX / len) * 0.15,
-                    Math.min(motion.y, 0.0),
-                    motion.z * 0.4 + (pullZ / len) * 0.15);
-                living.hurtMarked = true;
-            }
-        }
+        if (level instanceof ServerLevel serverLevel && state.getValue(LIT) && entity instanceof LivingEntity victim)
+            bite(serverLevel, pos, victim);
         super.stepOn(level, pos, state, entity);
     }
 
-    // Grinding ambience and stone dust kicked up by the rollers
+    private static void bite(ServerLevel level, BlockPos pos, LivingEntity victim) {
+        // The blades ignore half the victim's armor. The damage type bypasses
+        // armor altogether, so the reduction is worked out here against the
+        // halved value and armor is not counted twice.
+        DamageSource source = new DamageSource(level.registryAccess()
+            .lookupOrThrow(Registries.DAMAGE_TYPE).getOrThrow(Automati.CRUSHER_DAMAGE));
+        float damage = CombatRules.getDamageAfterAbsorb(victim, BLADE_DAMAGE, source,
+            victim.getArmorValue() * 0.5F, (float) victim.getAttributeValue(Attributes.ARMOR_TOUGHNESS));
+
+        // vanilla never wears down armor that was bypassed, so a landed bite does
+        if (victim.hurtServer(level, source, damage)) {
+            for (EquipmentSlot slot : ARMOR_SLOTS) {
+                ItemStack worn = victim.getItemBySlot(slot);
+                if (!worn.isEmpty())
+                    worn.hurtAndBreak(2, victim, slot);
+            }
+        }
+
+        // The rollers pull inward: replace the hurt knockback with a drag
+        // toward the centre of the block. hurtMarked makes the server send the
+        // new velocity to player clients.
+        double pullX = pos.getX() + 0.5 - victim.getX();
+        double pullZ = pos.getZ() + 0.5 - victim.getZ();
+        double distance = Math.sqrt(pullX * pullX + pullZ * pullZ);
+        if (distance > 0.05) {
+            Vec3 motion = victim.getDeltaMovement();
+            victim.setDeltaMovement(
+                motion.x * 0.4 + pullX / distance * 0.15,
+                Math.min(motion.y, 0.0),
+                motion.z * 0.4 + pullZ / distance * 0.15);
+            victim.hurtMarked = true;
+        }
+    }
+
+    // Grinding noise and the dust the rollers kick up
     @Override
     public void animateTick(BlockState state, Level level, BlockPos pos, RandomSource random) {
         if (!state.getValue(LIT))
             return;
-
-        if (random.nextDouble() < 0.15) {
-            level.playLocalSound(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5,
-                Automati.CRUSHER_LOOP.get(), SoundSource.BLOCKS,
-                0.7F, 0.95F + random.nextFloat() * 0.1F, false);
-        }
-
-        if (random.nextDouble() < 0.3) {
-            level.addParticle(ParticleTypes.POOF,
-                pos.getX() + 0.3 + random.nextDouble() * 0.4,
-                pos.getY() + 1.05,
-                pos.getZ() + 0.3 + random.nextDouble() * 0.4,
-                0.0, 0.02, 0.0);
-        }
+        if (random.nextDouble() < 0.15)
+            playAmbience(level, pos, Automati.CRUSHER_LOOP.get(), 0.7F, 0.95F + random.nextFloat() * 0.1F);
+        if (random.nextDouble() < 0.3)
+            riseFromTop(level, pos, random, ParticleTypes.POOF, 0.3, 1.05, 0.02);
     }
 }
