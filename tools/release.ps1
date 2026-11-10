@@ -10,8 +10,9 @@
 #   4. builds the jar (a broken build never gets committed)
 #   5. commits everything in the tree as "Automati vX.Y.Z - <name>" and pushes
 #
-# NOT done here, by house tradition: the changelog text and the Modrinth/
-# CurseForge uploads. Those belong to the humans.
+# NOT done here: the changelog text and the uploads. Write the changelog to
+# docs\changelogs\<version>.md, then publish_curseforge.ps1 uploads the jar to
+# CurseForge. Modrinth is still a manual upload.
 param(
     [Parameter(Mandatory)][string]$Version,
     [Parameter(Mandatory)][string]$Name,
@@ -71,4 +72,4 @@ if ($LASTEXITCODE -ne 0) { throw "git push failed - commit is local, push manual
 Write-Output ""
 Write-Output "=== Automati v$Version - $Name is out the door ==="
 Write-Output "jar: $jar"
-Write-Output "left for the humans: changelog text + Modrinth/CurseForge uploads"
+Write-Output "next: .\tools\publish_curseforge.ps1 -Version $Version (changelog in docs\changelogs\$Version.md), then the Modrinth upload"
