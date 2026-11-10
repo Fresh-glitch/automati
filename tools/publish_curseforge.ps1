@@ -4,10 +4,8 @@
 #   .\tools\publish_curseforge.ps1 -Version 1.12.0 -DryRun
 #   .\tools\publish_curseforge.ps1 -Version 1.12.0
 #
-# Needs two things next to the built jar (build\libs\automati-<version>.jar):
-#   - the API token in .env in the repo root, as CURSEFORGE_TOKEN=...
-#     (.env is git-ignored; never commit or print the token)
-#   - the changelog in docs\changelogs\<version>.md, written in markdown
+# Needs build\libs\automati-<version>.jar, the changelog in
+# docs\changelogs\<version>.md and CURSEFORGE_TOKEN in .env.
 #
 # -DryRun checks the token, the jar, the changelog and the game versions and
 # prints what would be sent, without uploading anything.
@@ -21,50 +19,18 @@ param(
     [switch]$DryRun
 )
 
-$ErrorActionPreference = 'Stop'
+. "$PSScriptRoot\publish_common.ps1"
 $projectId = 1609262
 $api = 'https://minecraft.curseforge.com/api'
-$repo = Split-Path -Parent $PSScriptRoot
 
-if ($Version -notmatch '^\d+\.\d+\.\d+$') { throw "Version must look like 1.12.0 (got '$Version')" }
-
-$jar = Join-Path $repo "build\libs\automati-$Version.jar"
-if (-not (Test-Path $jar)) { throw "Jar not found: $jar (build or release that version first)" }
-
-if (-not $ChangelogFile) { $ChangelogFile = Join-Path $repo "docs\changelogs\$Version.md" }
-if (-not (Test-Path $ChangelogFile)) { throw "Changelog not found: $ChangelogFile" }
-$changelog = [System.IO.File]::ReadAllText($ChangelogFile, [System.Text.Encoding]::UTF8).Trim()
-if (-not $changelog) { throw "Changelog is empty: $ChangelogFile" }
-
-# The jar must be the version it claims to be
-Add-Type -AssemblyName System.IO.Compression.FileSystem
-$zip = [System.IO.Compression.ZipFile]::OpenRead($jar)
-try {
-    $entry = $zip.GetEntry('META-INF/mods.toml')
-    if (-not $entry) { throw "No META-INF/mods.toml in $jar" }
-    $reader = New-Object System.IO.StreamReader($entry.Open())
-    $toml = $reader.ReadToEnd()
-    $reader.Dispose()
-} finally {
-    $zip.Dispose()
-}
-if ($toml -notmatch "(?m)^version=""$([regex]::Escape($Version))""") {
-    throw "The mods.toml inside the jar does not declare version $Version"
-}
-
-# The token: CURSEFORGE_TOKEN (CURSEFORGE-TOKEN is accepted too)
-$envPath = Join-Path $repo '.env'
-if (-not (Test-Path $envPath)) { throw "No .env in $repo (expected a line CURSEFORGE_TOKEN=...)" }
-$tokenLine = Get-Content $envPath | Where-Object { $_ -match '^\s*CURSEFORGE[-_]TOKEN\s*=' } | Select-Object -First 1
-if (-not $tokenLine) { throw ".env has no CURSEFORGE_TOKEN line" }
-$token = ($tokenLine -replace '^[^=]*=', '').Trim().Trim('"').Trim("'")
-if (-not $token) { throw "CURSEFORGE_TOKEN in .env is empty" }
-$headers = @{ 'X-Api-Token' = $token }
+$jar = Get-ReleaseJar $Version
+$changelog = Get-Changelog $Version $ChangelogFile
+$token = Get-EnvToken 'CURSEFORGE_TOKEN'
 
 # Game version names to ids. A Minecraft version name also exists as a
 # Bukkit version (type 1), which a mod file must not carry.
 $bukkitType = 1
-$known = Invoke-RestMethod -Uri "$api/game/versions" -Headers $headers
+$known = Invoke-RestMethod -Uri "$api/game/versions" -Headers @{ 'X-Api-Token' = $token }
 $versionIds = foreach ($name in $GameVersions) {
     $found = @($known | Where-Object { $_.name -eq $name -and $_.gameVersionTypeID -ne $bukkitType })
     if ($found.Count -ne 1) {
@@ -74,7 +40,7 @@ $versionIds = foreach ($name in $GameVersions) {
 }
 
 $metadata = [ordered]@{
-    changelog     = $changelog
+    changelog     = $changelog.Text
     changelogType = 'markdown'
     displayName   = "automati-$Version.jar"
     gameVersions  = @($versionIds)
@@ -82,10 +48,10 @@ $metadata = [ordered]@{
 } | ConvertTo-Json -Compress
 
 Write-Output "project:       $projectId (automati)"
-Write-Output "file:          $jar ($([math]::Round((Get-Item $jar).Length / 1KB, 1)) KB)"
+Write-Output "file:          $jar ($(Get-SizeKB $jar) KB)"
 Write-Output "release type:  $ReleaseType"
 Write-Output "game versions: $($GameVersions -join ', ') -> ids $($versionIds -join ', ')"
-Write-Output "changelog:     $ChangelogFile ($($changelog.Length) characters)"
+Write-Output "changelog:     $($changelog.Path) ($($changelog.Text.Length) characters)"
 
 if ($DryRun) {
     Write-Output ""

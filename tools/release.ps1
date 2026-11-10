@@ -11,8 +11,8 @@
 #   5. commits everything in the tree as "Automati vX.Y.Z - <name>" and pushes
 #
 # NOT done here: the changelog text and the uploads. Write the changelog to
-# docs\changelogs\<version>.md, then publish_curseforge.ps1 uploads the jar to
-# CurseForge. Modrinth is still a manual upload.
+# docs\changelogs\<version>.md, then publish_curseforge.ps1 and
+# publish_modrinth.ps1 upload the jar (try each with -DryRun first).
 param(
     [Parameter(Mandatory)][string]$Version,
     [Parameter(Mandatory)][string]$Name,
@@ -72,4 +72,4 @@ if ($LASTEXITCODE -ne 0) { throw "git push failed - commit is local, push manual
 Write-Output ""
 Write-Output "=== Automati v$Version - $Name is out the door ==="
 Write-Output "jar: $jar"
-Write-Output "next: .\tools\publish_curseforge.ps1 -Version $Version (changelog in docs\changelogs\$Version.md), then the Modrinth upload"
+Write-Output "next: .\tools\publish_curseforge.ps1 -Version $Version and .\tools\publish_modrinth.ps1 -Version $Version (changelog in docs\changelogs\$Version.md)"

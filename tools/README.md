@@ -33,6 +33,8 @@ will overwrite your changes.
 | `make_all.ps1` | *(runner)* regenerates every script-owned asset in ownership-correct order; `-IncludeSounds` for the OGGs |
 | `release.ps1` | *(pipeline)* version bump (both files, sync-checked) + datagen refresh + build + commit + push |
 | `publish_curseforge.ps1` | *(pipeline)* uploads `build/libs/automati-<version>.jar` to CurseForge with the changelog from `docs/changelogs/<version>.md`; `-DryRun` checks everything without uploading. Needs `CURSEFORGE_TOKEN` in `.env` (see `.env.example`) |
+| `publish_modrinth.ps1` | *(pipeline)* the same for Modrinth: creates the version `Automati <version>` with that jar and changelog; refuses a version that already exists. Needs `MODRINTH_TOKEN` in `.env` |
+| `publish_common.ps1` | *(shared, dot-sourced)* jar check, changelog and `.env` token reading for the two publish scripts |
 
 Retired (kept for history, not run by `make_all.ps1`): `make_wrench_texture.ps1` —
 the 2D wrench sprite it generates was replaced by the 3D model + atlas in v1.8.0.
