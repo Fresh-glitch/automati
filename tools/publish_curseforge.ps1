@@ -15,8 +15,9 @@ param(
     [Parameter(Mandatory)][string]$Version,
     [string]$ChangelogFile,
     [ValidateSet('release', 'beta', 'alpha')][string]$ReleaseType = 'release',
-    # Names as CurseForge lists them; the same two every file so far carries
-    [string[]]$GameVersions = @('26.2', 'Forge'),
+    # Names as CurseForge lists them. The upload API refuses a file without
+    # at least one environment (Client, Server).
+    [string[]]$GameVersions = @('26.2', 'Forge', 'Client', 'Server'),
     [switch]$DryRun
 )
 
